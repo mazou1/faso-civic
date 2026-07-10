@@ -219,6 +219,58 @@ def get_document(doc_id: int, db: Session = Depends(get_db)):
     )
 
 
+TYPES_TEXTES = ("decret", "loi", "arrete", "ordonnance", "charte", "constitution", "texte_juridique")
+
+
+class TexteOut(BaseModel):
+    id: int
+    type_doc: str
+    titre: str | None
+    reference: str | None
+    date_publication: date | None
+    secteur: str | None
+    description: str | None
+    url_pdf: str
+    jo_numero: str | None
+    jo_url: str | None
+
+
+@router.get("/textes", response_model=list[TexteOut])
+def list_textes(
+    db: Session = Depends(get_db),
+    q: str | None = Query(None, min_length=2, description="Recherche plein texte (français)"),
+    type: str | None = Query(None, description="decret | loi | arrete | ordonnance | charte | constitution"),
+    page: int = Query(1, ge=1),
+    par_page: int = Query(20, ge=1, le=100),
+):
+    """Textes juridiques (Légiburkina) : décrets, lois, arrêtés… avec lien PDF et Journal officiel."""
+    stmt = select(Document).where(Document.type_doc.in_(TYPES_TEXTES))
+    if type:
+        stmt = stmt.where(Document.type_doc == type)
+    if q:
+        stmt = stmt.where(text("document.tsv @@ websearch_to_tsquery('french', :q)")).params(q=q)
+    stmt = (
+        stmt.order_by(Document.date_publication.desc().nulls_last(), Document.id.desc())
+        .offset((page - 1) * par_page)
+        .limit(par_page)
+    )
+    return [
+        TexteOut(
+            id=d.id,
+            type_doc=d.type_doc,
+            titre=d.titre,
+            reference=(d.meta or {}).get("reference"),
+            date_publication=d.date_publication,
+            secteur=(d.meta or {}).get("secteur"),
+            description=d.texte_extrait,
+            url_pdf=d.url,
+            jo_numero=(d.meta or {}).get("jo_numero"),
+            jo_url=(d.meta or {}).get("jo_url"),
+        )
+        for d in db.scalars(stmt).all()
+    ]
+
+
 class DecisionOut(BaseModel):
     id: int
     document_id: int

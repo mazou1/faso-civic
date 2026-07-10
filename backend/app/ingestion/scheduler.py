@@ -57,17 +57,17 @@ def main() -> None:
 
     scheduler = BlockingScheduler(timezone="Africa/Ouagadougou")
     scheduler.add_job(run_medias, "interval", minutes=30, id="medias", coalesce=True)
-    # Le Conseil des ministres se tient le mercredi ; le CR est publié le soir
-    # ou le lendemain — deux passages hebdomadaires + rattrapage quotidien léger.
+    # Le Conseil des ministres se tient désormais le jeudi ; le CR est publié
+    # le soir ou le lendemain — passage jeudi soir + rattrapages.
     scheduler.add_job(
         run_conseil_ministres,
-        CronTrigger(day_of_week="wed", hour=20, minute=0),
-        id="cm_mercredi",
+        CronTrigger(day_of_week="thu", hour=20, minute=0),
+        id="cm_jeudi",
         coalesce=True,
     )
     scheduler.add_job(
         run_conseil_ministres,
-        CronTrigger(day_of_week="thu,fri", hour=10, minute=0),
+        CronTrigger(day_of_week="fri,sat", hour=10, minute=0),
         id="cm_rattrapage",
         coalesce=True,
     )
