@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     # Identification claire auprès des sites collectés (politesse)
     user_agent: str = "FasoCivic/0.1 (plateforme civique open source)"
 
+    # Extraction LLM : mistral (tier gratuit) | anthropic — cf. extraction/conseil_ministres.py
+    llm_provider: str = "mistral"
+    mistral_api_key: str = ""
     anthropic_api_key: str = ""
 
 

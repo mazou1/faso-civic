@@ -43,6 +43,9 @@ services:
     environment:
       FASO_DATABASE_URL: postgresql+psycopg://faso:${POSTGRES_PASSWORD:-faso}@db:5432/faso
       FASO_DATA_DIR: /data
+      FASO_LLM_PROVIDER: ${FASO_LLM_PROVIDER:-mistral}
+      FASO_MISTRAL_API_KEY: ${FASO_MISTRAL_API_KEY:-}
+      FASO_ANTHROPIC_API_KEY: ${FASO_ANTHROPIC_API_KEY:-}
     volumes:
       - ./data:/data
     depends_on:

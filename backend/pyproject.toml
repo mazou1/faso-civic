@@ -20,6 +20,7 @@ dependencies = [
     "pdfplumber>=0.11",
     "pytesseract>=0.3",
     "apscheduler>=3.10,<4",
+    "mistralai>=2.6",
     "anthropic>=0.34",
 ]
 

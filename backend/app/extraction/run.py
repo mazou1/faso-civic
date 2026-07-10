@@ -6,6 +6,7 @@ Traite les comptes rendus du Conseil des ministres pas encore structurés
 
 import logging
 import sys
+import time
 
 from sqlalchemy import select
 
@@ -31,7 +32,9 @@ def main() -> int:
             print("Aucun compte rendu en attente de structuration.")
             return 0
         total_d = total_n = 0
-        for doc in docs:
+        for i, doc in enumerate(docs):
+            if i:
+                time.sleep(1.5)  # politesse tier gratuit Mistral (~1 req/s)
             d, n = traiter_document(db, doc)
             total_d += d
             total_n += n

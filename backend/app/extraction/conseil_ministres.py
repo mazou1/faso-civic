@@ -10,10 +10,10 @@ statut_validation='a_valider' — l'extraction automatique ne publie jamais seul
 from __future__ import annotations
 
 import logging
+import time
 from datetime import date, datetime, timezone
 from typing import Literal
 
-import anthropic
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -24,7 +24,8 @@ from app.models import Decision, Document, Nomination, Personne, Structure
 
 logger = logging.getLogger(__name__)
 
-MODELE = "claude-opus-4-8"
+MODELE_ANTHROPIC = "claude-opus-4-8"
+MODELE_MISTRAL = "mistral-small-latest"
 TEXTE_MINIMUM = 500  # en dessous, le document est un lien PDF / une traduction, pas un CR complet
 
 
@@ -85,10 +86,50 @@ contient rien pour une catégorie, retourne une liste vide."""
 
 
 def extraire_cr(texte: str) -> ExtractionCR:
+    """Point d'entrée unique — le fournisseur se choisit via FASO_LLM_PROVIDER."""
+    if settings.llm_provider == "anthropic":
+        return _extraire_anthropic(texte)
+    return _extraire_mistral(texte)
+
+
+def _extraire_mistral(texte: str) -> ExtractionCR:
+    """Mistral La Plateforme — tier gratuit : ~1 req/s, retry sur 429."""
+    from mistralai.client import Mistral
+
+    client = Mistral(api_key=settings.mistral_api_key)
+    for tentative in range(4):
+        try:
+            response = client.chat.parse(
+                model=MODELE_MISTRAL,
+                messages=[
+                    {"role": "system", "content": PROMPT_SYSTEME},
+                    {"role": "user", "content": texte},
+                ],
+                response_format=ExtractionCR,
+                temperature=0,
+            )
+            break
+        except Exception as exc:  # noqa: BLE001 — le SDK lève des types variés selon le transport
+            status = getattr(exc, "status_code", None)
+            if status == 429 and tentative < 3:
+                attente = 5 * (tentative + 1)
+                logger.info("Mistral 429 (tier gratuit) — nouvelle tentative dans %ds", attente)
+                time.sleep(attente)
+                continue
+            raise
+    parsed = response.choices[0].message.parsed
+    if parsed is None:
+        raise RuntimeError("Réponse Mistral non conforme au schéma — document à traiter manuellement")
+    return parsed
+
+
+def _extraire_anthropic(texte: str) -> ExtractionCR:
+    import anthropic
+
     # api_key=None → le SDK résout la clé depuis l'environnement (ANTHROPIC_API_KEY / profil)
     client = anthropic.Anthropic(api_key=settings.anthropic_api_key or None)
     response = client.messages.parse(
-        model=MODELE,
+        model=MODELE_ANTHROPIC,
         max_tokens=16000,
         system=PROMPT_SYSTEME,
         messages=[{"role": "user", "content": texte}],

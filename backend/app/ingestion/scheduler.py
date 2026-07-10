@@ -27,8 +27,16 @@ def run_conseil_ministres() -> None:
     with SessionLocal() as db:
         for cls in active_collectors(db, groupe="institutionnel"):
             cls(db).run()
-    if not settings.anthropic_api_key:
-        logger.warning("FASO_ANTHROPIC_API_KEY absente — structuration des CR non lancée")
+    cle = (
+        settings.mistral_api_key
+        if settings.llm_provider == "mistral"
+        else settings.anthropic_api_key
+    )
+    if not cle:
+        logger.warning(
+            "Aucune clé API pour le fournisseur '%s' — structuration des CR non lancée",
+            settings.llm_provider,
+        )
         return
     from app.extraction import run as extraction_run
 
