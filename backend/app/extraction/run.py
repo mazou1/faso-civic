@@ -31,16 +31,23 @@ def main() -> int:
         if not docs:
             print("Aucun compte rendu en attente de structuration.")
             return 0
-        total_d = total_n = 0
+        total_d = total_n = echecs = 0
         for i, doc in enumerate(docs):
             if i:
                 time.sleep(1.5)  # politesse tier gratuit Mistral (~1 req/s)
-            d, n = traiter_document(db, doc)
+            try:
+                d, n = traiter_document(db, doc)
+            except Exception:  # noqa: BLE001 — un CR en échec ne doit pas arrêter le backfill
+                logging.exception("Échec sur le document %s — on continue", doc.id)
+                db.rollback()
+                echecs += 1
+                continue
             total_d += d
             total_n += n
         print(
             f"{len(docs)} document(s) traité(s) : {total_d} décision(s) et "
             f"{total_n} nomination(s) extraites (à valider dans /admin)."
+            + (f" {echecs} échec(s) à retraiter." if echecs else "")
         )
     return 0
 
