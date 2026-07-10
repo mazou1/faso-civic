@@ -1,22 +1,19 @@
-"""Collecteur des comptes rendus du Conseil des ministres — PHASE 1.
+"""Comptes rendus du Conseil des ministres — gouvernement.gov.bf.
 
-Squelette volontairement non enregistré dans le registre tant que le
-gabarit HTML de gouvernement.gov.bf n'a pas été analysé. La chaîne cible :
-listing → pages CR → archivage HTML → extraction des nominations (LLM,
-validation humaine) → annuaire (mandats).
+Le site est un WordPress avec API REST ouverte ; la catégorie 23
+(« Compte rendu », vérifiée le 2026-07-10) contient les CR officiels.
+Chaîne complète : collecte → texte → extraction LLM des nominations
+(app.extraction.nominations) → validation humaine → annuaire (app.annuaire).
 """
 
 from __future__ import annotations
 
-from app.ingestion.base import Collector
+from app.ingestion.wordpress import WordPressCollector
 
 
-class ConseilMinistresCollector(Collector):
+class ConseilMinistresCollector(WordPressCollector):
     slug = "conseil_ministres"
-    listing_url = "https://www.gouvernement.gov.bf/"
-
-    def collect(self) -> None:
-        raise NotImplementedError(
-            "Phase 1 : analyser le gabarit du site, extraire la liste des CR, "
-            "archiver chaque compte rendu (type_doc='cr_conseil')."
-        )
+    groupe = "institutionnel"
+    api_base = "https://gouvernement.gov.bf/wp-json/wp/v2"
+    categories = "23"  # « Compte rendu » (parent « Conseil des ministres »)
+    type_doc = "cr_conseil"

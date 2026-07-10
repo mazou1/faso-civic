@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.ingestion.base import Collector
+from app.ingestion.conseil_ministres import ConseilMinistresCollector
 from app.ingestion.rss import make_rss_collector
 from app.models import Source
 
@@ -41,6 +42,8 @@ RSS_FEEDS: dict[str, str] = {
 
 COLLECTORS: dict[str, type[Collector]] = {
     slug: make_rss_collector(slug, url) for slug, url in RSS_FEEDS.items()
+} | {
+    ConseilMinistresCollector.slug: ConseilMinistresCollector,
 }
 
 
@@ -53,6 +56,10 @@ def seed_sources(db: Session) -> None:
     db.commit()
 
 
-def active_collectors(db: Session) -> list[type[Collector]]:
+def active_collectors(db: Session, groupe: str | None = None) -> list[type[Collector]]:
     actifs = set(db.scalars(select(Source.slug).where(Source.actif.is_(True))).all())
-    return [cls for slug, cls in COLLECTORS.items() if slug in actifs]
+    return [
+        cls
+        for slug, cls in COLLECTORS.items()
+        if slug in actifs and (groupe is None or cls.groupe == groupe)
+    ]

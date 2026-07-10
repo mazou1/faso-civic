@@ -6,7 +6,7 @@ from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
-from app.models import Document, Source
+from app.models import Decision, Document, Nomination, Source
 
 router = APIRouter()
 
@@ -111,3 +111,100 @@ def get_document(doc_id: int, db: Session = Depends(get_db)):
         statut_extraction=d.statut_extraction,
         meta=d.meta,
     )
+
+
+class DecisionOut(BaseModel):
+    id: int
+    document_id: int
+    document_url: str
+    date_conseil: date | None
+    ministere: str | None
+    type: str
+    objet: str
+
+
+@router.get("/decisions", response_model=list[DecisionOut])
+def list_decisions(
+    db: Session = Depends(get_db),
+    ministere: str | None = Query(None, description="Filtre contient, insensible à la casse"),
+    type: str | None = None,
+    page: int = Query(1, ge=1),
+    par_page: int = Query(20, ge=1, le=100),
+):
+    """Décisions du Conseil des ministres — contenus validés uniquement."""
+    stmt = (
+        select(Decision)
+        .join(Document)
+        .where(Decision.statut_validation == "valide")
+    )
+    if ministere:
+        stmt = stmt.where(Decision.ministere.ilike(f"%{ministere}%"))
+    if type:
+        stmt = stmt.where(Decision.type == type)
+    stmt = (
+        stmt.order_by(Document.date_publication.desc().nulls_last(), Decision.id.desc())
+        .offset((page - 1) * par_page)
+        .limit(par_page)
+    )
+    return [
+        DecisionOut(
+            id=d.id,
+            document_id=d.document_id,
+            document_url=d.document.url,
+            date_conseil=d.document.date_publication,
+            ministere=d.ministere,
+            type=d.type,
+            objet=d.objet,
+        )
+        for d in db.scalars(stmt).all()
+    ]
+
+
+class NominationOut(BaseModel):
+    id: int
+    document_id: int
+    document_url: str
+    date_conseil: date | None
+    personne: str
+    poste: str
+    structure: str | None
+    date_effet: date | None
+    type: str
+
+
+@router.get("/nominations", response_model=list[NominationOut])
+def list_nominations(
+    db: Session = Depends(get_db),
+    q: str | None = Query(None, description="Recherche sur le nom de la personne"),
+    page: int = Query(1, ge=1),
+    par_page: int = Query(20, ge=1, le=100),
+):
+    """Nominations en Conseil des ministres — contenus validés uniquement."""
+    stmt = (
+        select(Nomination)
+        .join(Document)
+        .where(Nomination.statut_validation == "valide")
+    )
+    if q:
+        from app.models import Personne
+
+        stmt = stmt.join(Personne).where(Personne.nom_complet.ilike(f"%{q}%"))
+    stmt = (
+        stmt.order_by(Document.date_publication.desc().nulls_last(), Nomination.id.desc())
+        .offset((page - 1) * par_page)
+        .limit(par_page)
+    )
+    return [
+        NominationOut(
+            id=n.id,
+            document_id=n.document_id,
+            document_url=n.document.url,
+            date_conseil=n.document.date_publication,
+            personne=n.personne.nom_complet,
+            poste=n.poste,
+            structure=str(n.structure) if n.structure else None,
+            date_effet=n.date_effet,
+            type=n.type,
+        )
+        for n in db.scalars(stmt).all()
+    ]

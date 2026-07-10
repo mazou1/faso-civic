@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 class Collector:
     slug: str  # doit correspondre à Source.slug
+    groupe: str = "autre"  # media | institutionnel — utilisé par le scheduler
 
     def __init__(self, db: Session):
         self.db = db

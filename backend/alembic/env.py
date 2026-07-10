@@ -14,9 +14,12 @@ target_metadata = Base.metadata
 
 
 def include_name(name, type_, parent_names) -> bool:
-    """Ignore les tables installées par l'image PostGIS (tiger, topology…)."""
+    """Ignore les tables PostGIS (tiger, topology…) et la colonne tsv
+    (générée en SQL brut, volontairement non mappée dans l'ORM)."""
     if type_ == "table":
         return name in target_metadata.tables
+    if type_ == "column" and name == "tsv":
+        return False
     return True
 
 

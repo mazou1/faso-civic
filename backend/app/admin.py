@@ -12,7 +12,7 @@ from starlette.requests import Request
 
 from app.config import settings
 from app.db import engine
-from app.models import Document, Mandat, Nomination, Personne, Run, Source, Structure
+from app.models import Decision, Document, Mandat, Nomination, Personne, Run, Source, Structure
 
 
 class AdminAuth(AuthenticationBackend):
@@ -69,6 +69,22 @@ class NominationAdmin(ModelView, model=Nomination):
     icon = "fa-solid fa-user-check"
 
 
+class DecisionAdmin(ModelView, model=Decision):
+    name_plural = "Décisions (validation)"
+    column_list = [
+        Decision.id,
+        Decision.document,
+        Decision.ministere,
+        Decision.type,
+        Decision.objet,
+        Decision.score_confiance,
+        Decision.statut_validation,
+    ]
+    column_searchable_list = [Decision.objet, Decision.ministere]
+    column_default_sort = ("id", True)
+    icon = "fa-solid fa-gavel"
+
+
 class PersonneAdmin(ModelView, model=Personne):
     column_list = [Personne.id, Personne.nom_complet, Personne.nom_normalise]
     column_searchable_list = [Personne.nom_complet]
@@ -112,6 +128,7 @@ def mount_admin(app: FastAPI) -> None:
     for view in (
         SourceAdmin,
         DocumentAdmin,
+        DecisionAdmin,
         NominationAdmin,
         PersonneAdmin,
         StructureAdmin,

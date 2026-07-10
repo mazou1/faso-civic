@@ -32,10 +32,24 @@ docker compose up -d db            # Postgres/PostGIS sur localhost:5434
 cd backend
 uv venv && uv pip install -e ".[dev]"
 .venv/bin/alembic upgrade head
-.venv/bin/python -m app.ingestion.run all      # collecte manuelle
+.venv/bin/python -m app.ingestion.run all      # collecte manuelle (RSS + Conseil des ministres)
 .venv/bin/uvicorn app.main:app --reload        # API sur :8000
 .venv/bin/pytest
 ```
+
+## Chaîne Conseil des ministres (phase 1)
+
+```bash
+python -m app.ingestion.run conseil_ministres  # collecte les CR (API REST WordPress, cat. 23)
+FASO_ANTHROPIC_API_KEY=sk-ant-... \
+python -m app.extraction.run 5                 # structuration LLM : décisions + nominations
+# → valider dans /admin (statut a_valider → valide), puis :
+python -m app.annuaire                         # consolide les mandats (annuaire de l'État)
+```
+
+L'extraction utilise l'API Claude (`claude-opus-4-8`, sortie structurée Pydantic).
+Rien n'est publié sans validation humaine : `/decisions` et `/nominations`
+n'exposent que les entités validées, chacune liée à son document source.
 
 ## Structure
 

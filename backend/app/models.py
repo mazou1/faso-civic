@@ -68,6 +68,8 @@ class Document(Base):
     texte_extrait: Mapped[str | None] = mapped_column(Text)
     # en_attente | ok | ocr | echec | na (na = métadonnées seules, rien à extraire)
     statut_extraction: Mapped[str] = mapped_column(String(20), default="en_attente")
+    # renseignée quand l'étage de structuration LLM (nominations/décisions) est passé
+    date_structuration: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     meta: Mapped[dict | None] = mapped_column(JSONB)
     # NB : colonne `tsv` (tsvector générée, index GIN) créée en SQL brut dans la
     # migration initiale — volontairement non mappée dans l'ORM.
@@ -125,6 +127,27 @@ class Nomination(Base):
     document: Mapped[Document] = relationship()
     personne: Mapped[Personne] = relationship()
     structure: Mapped[Structure | None] = relationship()
+
+
+class Decision(Base):
+    """Mesure prise en Conseil des ministres (hors nominations individuelles) :
+    adoption de décret, rapport, communication, autorisation…"""
+
+    __tablename__ = "decision"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    document_id: Mapped[int] = mapped_column(ForeignKey("document.id"))
+    ministere: Mapped[str | None] = mapped_column(String(300))  # « AU TITRE DE … »
+    # adoption_decret | adoption_loi | rapport | communication | autorisation | autre
+    type: Mapped[str] = mapped_column(String(30), default="autre", index=True)
+    objet: Mapped[str] = mapped_column(Text)  # résumé fidèle de la mesure
+    score_confiance: Mapped[float | None] = mapped_column(Float)
+    statut_validation: Mapped[str] = mapped_column(String(20), default="a_valider", index=True)
+
+    document: Mapped[Document] = relationship()
+
+    def __str__(self) -> str:
+        return f"[{self.type}] {self.objet[:80]}"
 
 
 class Mandat(Base):

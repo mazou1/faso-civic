@@ -16,6 +16,7 @@ from app.ingestion.base import Collector
 
 
 class RSSCollector(Collector):
+    groupe = "media"
     feed_url: str
 
     def collect(self) -> None:
