@@ -1,0 +1,116 @@
+- generic [ref=e3]:
+  - generic [ref=e6]:
+    - link "BURKINA FASO" [ref=e8] [cursor=pointer]:
+      - /url: /
+      - img "BURKINA FASO" [ref=e9]
+    - heading "LégiBurkina" [level=4] [ref=e11]
+    - link "BURKINA FASO" [ref=e13] [cursor=pointer]:
+      - /url: /
+      - img "BURKINA FASO" [ref=e14]
+  - generic [ref=e20]:
+    - generic [ref=e22] [cursor=pointer]: 
+    - generic: 
+  - generic [ref=e23]:
+    - generic [ref=e27]:
+      - heading "Publicités" [level=6] [ref=e28]
+      - generic [ref=e29]:
+        - tablist [ref=e30]:
+          - tab "Slide 1 of 2 L'HEBDOMADAIRE OFFICIEL DU BURKINA FASO L'HEBDOMADAIRE OFFICIEL DU BURKINA FASO" [selected] [ref=e31] [cursor=pointer]
+          - tab "Slide 2 of 2 DIFFUSER LA REGLE DE DROIT DIFFUSER LA REGLE DE DROIT" [ref=e32] [cursor=pointer]
+        - tabpanel [ref=e34]:
+          - generic [ref=e35]: Slide 1 of 2
+          - img "L'HEBDOMADAIRE OFFICIEL DU BURKINA FASO" [ref=e36]
+          - heading "L'HEBDOMADAIRE OFFICIEL DU BURKINA FASO" [level=3] [ref=e38]
+        - button "Previous" [ref=e39] [cursor=pointer]:
+          - generic [ref=e41]: Previous
+        - button "Next" [ref=e42] [cursor=pointer]:
+          - generic [ref=e44]: Next
+    - generic [ref=e49]:
+      - searchbox "Recherche de documents..." [ref=e50]
+      - button " Rechercher" [ref=e52] [cursor=pointer]:
+        - generic [ref=e53]: 
+        - text: Rechercher
+    - generic [ref=e58]:
+      - generic [ref=e59]: Documents récents
+      - generic [ref=e61]:
+        - generic [ref=e62]:
+          - generic [ref=e64]:
+            - generic [ref=e67]: Liste des documents
+            - generic:
+              - table:
+                - rowgroup:
+                  - row:     
+                - rowgroup
+          - generic [ref=e70]:
+            - generic [ref=e71] [cursor=pointer]: Affichage 0 à 0 de 0 élements
+            - button "" [disabled]:
+              - generic: 
+            - button "" [disabled]:
+              - generic: 
+            - button "" [disabled]:
+              - generic: 
+            - button "" [disabled]:
+              - generic: 
+        - generic:
+          - generic:              
+  - generic [ref=e72]:
+    - generic [ref=e75]:
+      - img "Burkina Faso" [ref=e77]
+      - generic [ref=e78]:
+        - heading "Liens utiles" [level=6] [ref=e79]
+        - list [ref=e80]:
+          - listitem [ref=e81]:
+            - link "La présidence du Faso" [ref=e82] [cursor=pointer]:
+              - /url: https://www.presidencedufaso.bf/
+              - generic [ref=e83]: 
+              - text: La présidence du Faso
+          - listitem [ref=e84]:
+            - link "Le Gouvernement du Faso" [ref=e85] [cursor=pointer]:
+              - /url: https://gouvernement.gov.bf/
+              - generic [ref=e86]: 
+              - text: Le Gouvernement du Faso
+          - listitem [ref=e87]:
+            - link "Le SGGCM" [ref=e88] [cursor=pointer]:
+              - /url: https://www.sggcm.gov.bf
+              - generic [ref=e89]: 
+              - text: Le SGGCM
+          - listitem [ref=e90]:
+            - link "Services Publics" [ref=e91] [cursor=pointer]:
+              - /url: https://servicepublic.gov.bf/
+              - generic [ref=e92]: 
+              - text: Services Publics
+          - listitem [ref=e93]:
+            - generic [ref=e94] [cursor=pointer]:
+              - generic [ref=e95]: 
+              - text: Contact
+      - generic [ref=e96]:
+        - heading "Infos contact" [level=6] [ref=e97]
+        - list [ref=e98]:
+          - listitem [ref=e99]:
+            - link "752 AVENUE BURKINA FASO" [ref=e100] [cursor=pointer]:
+              - /url: "#"
+              - generic [ref=e101]: 
+              - text: 752 AVENUE BURKINA FASO
+          - listitem [ref=e102]:
+            - link "(+226) 25 40 99 74" [ref=e103] [cursor=pointer]:
+              - /url: tel:+22625409974
+              - generic [ref=e104]: 
+              - text: (+226) 25 40 99 74
+          - listitem [ref=e105]:
+            - link "legiburkina@sggcm.gov.bf" [ref=e106] [cursor=pointer]:
+              - /url: mailto:legiburkina@sggcm.gov.bf
+              - generic [ref=e107]: 
+              - text: legiburkina@sggcm.gov.bf
+          - listitem [ref=e108]:
+            - link "" [ref=e109] [cursor=pointer]:
+              - /url: https://www.facebook.com/sggcm
+              - generic [ref=e110]: 
+            - link "" [ref=e111] [cursor=pointer]:
+              - /url: https://www.youtube.com/@sggcm
+              - generic [ref=e112]: 
+          - listitem
+    - generic [ref=e114]:
+      - text: Copyright ©
+      - link "SGG-CM" [ref=e115] [cursor=pointer]:
+        - /url: https://www.sggcm.gov.bf/
+      - text: "- Legiburkina 2024 | Tous les droits sont réservés."

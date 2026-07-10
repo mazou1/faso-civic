@@ -18,6 +18,7 @@ from app.ingestion.base import Collector
 class RSSCollector(Collector):
     groupe = "media"
     feed_url: str
+    type_doc: str = "article_presse"
 
     def collect(self) -> None:
         resp = self.get(self.feed_url)
@@ -38,7 +39,7 @@ class RSSCollector(Collector):
             digest = hashlib.sha256(f"{link}|{titre}".encode()).hexdigest()
             self.upsert_document(
                 url=link,
-                type_doc="article_presse",
+                type_doc=self.type_doc,
                 titre=titre,
                 date_publication=pub,
                 hash_contenu=digest,
@@ -47,5 +48,11 @@ class RSSCollector(Collector):
             )
 
 
-def make_rss_collector(slug: str, feed_url: str) -> type[RSSCollector]:
-    return type(f"RSS_{slug}", (RSSCollector,), {"slug": slug, "feed_url": feed_url})
+def make_rss_collector(
+    slug: str, feed_url: str, type_doc: str = "article_presse"
+) -> type[RSSCollector]:
+    return type(
+        f"RSS_{slug}",
+        (RSSCollector,),
+        {"slug": slug, "feed_url": feed_url, "type_doc": type_doc},
+    )

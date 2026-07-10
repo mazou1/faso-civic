@@ -22,10 +22,17 @@ def run_medias() -> None:
             cls(db).run()
 
 
+def run_institutionnel() -> None:
+    """Sources institutionnelles quotidiennes (Légiburkina…)."""
+    with SessionLocal() as db:
+        for cls in active_collectors(db, groupe="institutionnel"):
+            cls(db).run()
+
+
 def run_conseil_ministres() -> None:
     """Collecte des CR puis structuration LLM (si une clé API est disponible)."""
     with SessionLocal() as db:
-        for cls in active_collectors(db, groupe="institutionnel"):
+        for cls in active_collectors(db, groupe="cm"):
             cls(db).run()
     cle = (
         settings.mistral_api_key
@@ -64,11 +71,19 @@ def main() -> None:
         id="cm_rattrapage",
         coalesce=True,
     )
-    # Phase 2 : jobs quotidiens Légiburkina / SIG / Présidence
+    # Institutionnel quotidien : Légiburkina (textes juridiques) tôt le matin.
+    # La Présidence passe par le job RSS « medias » toutes les 30 min.
+    scheduler.add_job(
+        run_institutionnel,
+        CronTrigger(hour=6, minute=0),
+        id="institutionnel_quotidien",
+        coalesce=True,
+    )
 
     logger.info("Worker d'ingestion démarré — collecte immédiate puis cadences planifiées")
     run_medias()
     run_conseil_ministres()
+    run_institutionnel()
     scheduler.start()
 
 

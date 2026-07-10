@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.ingestion.base import Collector
 from app.ingestion.conseil_ministres import ConseilMinistresCollector
+from app.ingestion.legiburkina import LegiburkinaCollector
 from app.ingestion.rss import make_rss_collector
 from app.models import Source
 
@@ -44,6 +45,13 @@ COLLECTORS: dict[str, type[Collector]] = {
     slug: make_rss_collector(slug, url) for slug, url in RSS_FEEDS.items()
 } | {
     ConseilMinistresCollector.slug: ConseilMinistresCollector,
+    LegiburkinaCollector.slug: LegiburkinaCollector,
+    # Présidence : wp-json fermé (401) mais flux RSS actif — communiqués officiels
+    "presidence": make_rss_collector(
+        "presidence", "https://www.presidencedufaso.bf/feed/", type_doc="communique"
+    ),
+    # NB : sig.gov.bf n'est pas collectable à ce jour (wp-json, /feed et
+    # wp-sitemap redirigent tous vers l'accueil) — vérifié le 2026-07-10.
 }
 
 
