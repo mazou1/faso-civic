@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_USER: faso
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-faso}
+      POSTGRES_DB: faso
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U faso -d faso"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./backend
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    environment:
+      FASO_DATABASE_URL: postgresql+psycopg://faso:${POSTGRES_PASSWORD:-faso}@db:5432/faso
+      FASO_DATA_DIR: /data
+      FASO_ADMIN_USER: ${FASO_ADMIN_USER:-admin}
+      FASO_ADMIN_PASSWORD: ${FASO_ADMIN_PASSWORD:-change-me}
+      FASO_SECRET_KEY: ${FASO_SECRET_KEY:-change-me-long-random}
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build: ./backend
+    command: python -m app.ingestion.scheduler
+    environment:
+      FASO_DATABASE_URL: postgresql+psycopg://faso:${POSTGRES_PASSWORD:-faso}@db:5432/faso
+      FASO_DATA_DIR: /data
+    volumes:
+      - ./data:/data
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:

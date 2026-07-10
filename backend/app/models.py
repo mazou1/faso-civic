@@ -1,0 +1,162 @@
+"""Modèle de données — cf. cadrage-plateforme-civique-v2.md §4.
+
+Tout gravite autour du `Document` source ; les entités structurées
+(nominations, mandats…) y sont rattachées pour garantir la traçabilité.
+Les champs "type"/"statut" sont des chaînes libres documentées ici plutôt
+que des enums PG natifs, pour garder les migrations légères.
+"""
+
+from __future__ import annotations
+
+from datetime import date, datetime
+
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.db import Base
+
+
+class Source(Base):
+    __tablename__ = "source"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    slug: Mapped[str] = mapped_column(String(50), unique=True)
+    nom: Mapped[str] = mapped_column(String(200))
+    url_base: Mapped[str] = mapped_column(String(500))
+    type: Mapped[str] = mapped_column(String(50))  # institutionnel | media | open_data
+    cadence: Mapped[str] = mapped_column(String(50), default="quotidien")
+    licence: Mapped[str | None] = mapped_column(String(200))
+    actif: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    documents: Mapped[list[Document]] = relationship(back_populates="source")
+
+    def __str__(self) -> str:
+        return self.slug
+
+
+class Document(Base):
+    __tablename__ = "document"
+    __table_args__ = (
+        UniqueConstraint("source_id", "url", "hash_contenu", name="uq_document_source_url_hash"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    source_id: Mapped[int] = mapped_column(ForeignKey("source.id"))
+    url: Mapped[str] = mapped_column(String(1000), index=True)
+    titre: Mapped[str | None] = mapped_column(String(1000))
+    # cr_conseil | decret | arrete | loi | communique | decision | rapport | marche | article_presse
+    type_doc: Mapped[str] = mapped_column(String(50), index=True)
+    date_publication: Mapped[date | None] = mapped_column(Date, index=True)
+    date_collecte: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    hash_contenu: Mapped[str | None] = mapped_column(String(64), index=True)
+    fichier: Mapped[str | None] = mapped_column(String(500))  # chemin relatif dans DATA_DIR
+    mime: Mapped[str | None] = mapped_column(String(100))
+    texte_extrait: Mapped[str | None] = mapped_column(Text)
+    # en_attente | ok | ocr | echec | na (na = métadonnées seules, rien à extraire)
+    statut_extraction: Mapped[str] = mapped_column(String(20), default="en_attente")
+    meta: Mapped[dict | None] = mapped_column(JSONB)
+    # NB : colonne `tsv` (tsvector générée, index GIN) créée en SQL brut dans la
+    # migration initiale — volontairement non mappée dans l'ORM.
+
+    source: Mapped[Source] = relationship(back_populates="documents")
+
+    def __str__(self) -> str:
+        return f"[{self.type_doc}] {self.titre or self.url}"
+
+
+class Personne(Base):
+    __tablename__ = "personne"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nom_complet: Mapped[str] = mapped_column(String(300))
+    nom_normalise: Mapped[str] = mapped_column(String(300), index=True)
+    notes: Mapped[str | None] = mapped_column(Text)
+
+    def __str__(self) -> str:
+        return self.nom_complet
+
+
+class Structure(Base):
+    __tablename__ = "structure"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nom: Mapped[str] = mapped_column(String(500))
+    sigle: Mapped[str | None] = mapped_column(String(50), index=True)
+    # ministere | direction | societe_etat | etablissement_public | juridiction | autre
+    type: Mapped[str] = mapped_column(String(50), default="autre")
+    parent_id: Mapped[int | None] = mapped_column(ForeignKey("structure.id"))
+
+    parent: Mapped[Structure | None] = relationship(remote_side=[id])
+
+    def __str__(self) -> str:
+        return self.sigle or self.nom
+
+
+class Nomination(Base):
+    """Fait brut extrait d'un document (CR du Conseil des ministres, décret…)."""
+
+    __tablename__ = "nomination"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    document_id: Mapped[int] = mapped_column(ForeignKey("document.id"))
+    personne_id: Mapped[int] = mapped_column(ForeignKey("personne.id"))
+    structure_id: Mapped[int | None] = mapped_column(ForeignKey("structure.id"))
+    poste: Mapped[str] = mapped_column(String(500))
+    date_effet: Mapped[date | None] = mapped_column(Date)
+    type: Mapped[str] = mapped_column(String(20), default="nomination")  # nomination | fin_fonction
+    score_confiance: Mapped[float | None] = mapped_column(Float)
+    # a_valider | valide | rejete — l'extraction automatique ne publie jamais seule
+    statut_validation: Mapped[str] = mapped_column(String(20), default="a_valider", index=True)
+
+    document: Mapped[Document] = relationship()
+    personne: Mapped[Personne] = relationship()
+    structure: Mapped[Structure | None] = relationship()
+
+
+class Mandat(Base):
+    """Vue consolidée dérivée des nominations validées — alimente l'annuaire."""
+
+    __tablename__ = "mandat"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    personne_id: Mapped[int] = mapped_column(ForeignKey("personne.id"))
+    structure_id: Mapped[int | None] = mapped_column(ForeignKey("structure.id"))
+    poste: Mapped[str] = mapped_column(String(500))
+    date_debut: Mapped[date | None] = mapped_column(Date)
+    date_fin: Mapped[date | None] = mapped_column(Date)
+    nomination_debut_id: Mapped[int | None] = mapped_column(ForeignKey("nomination.id"))
+    nomination_fin_id: Mapped[int | None] = mapped_column(ForeignKey("nomination.id"))
+
+    personne: Mapped[Personne] = relationship()
+    structure: Mapped[Structure | None] = relationship()
+
+
+class Run(Base):
+    """Journal d'exécution des collecteurs — alimente l'alerte « source muette »."""
+
+    __tablename__ = "run"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    source_id: Mapped[int] = mapped_column(ForeignKey("source.id"))
+    debut: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    fin: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    statut: Mapped[str] = mapped_column(String(20), default="en_cours")  # en_cours | ok | echec
+    nb_nouveaux: Mapped[int] = mapped_column(Integer, default=0)
+    nb_vus: Mapped[int] = mapped_column(Integer, default=0)
+    erreurs: Mapped[str | None] = mapped_column(Text)
+
+    source: Mapped[Source] = relationship()

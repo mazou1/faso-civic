@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Environnement
+.env
+
+# Données collectées (archives PDF/HTML) — l'actif vit en prod + sauvegardes, pas dans git
+data/
+
+# Divers
+*.log
+.DS_Store
