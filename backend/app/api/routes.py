@@ -2,11 +2,11 @@ from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
-from app.models import Decision, Document, Nomination, Source
+from app.models import Decision, Document, Mandat, Nomination, Personne, Source, Structure
 
 router = APIRouter()
 
@@ -29,6 +29,112 @@ def health() -> dict:
     except Exception:
         pass
     return {"status": "ok" if db_ok else "degraded", "db": db_ok}
+
+
+@router.get("/stats")
+def stats(db: Session = Depends(get_db)) -> dict:
+    """Agrégats pour le tableau de bord — contenus validés uniquement."""
+    valide_d = Decision.statut_validation == "valide"
+    valide_n = Nomination.statut_validation == "valide"
+    annee = func.extract("year", Document.date_publication).label("annee")
+
+    par_annee_d = dict(
+        db.execute(
+            select(annee, func.count()).join_from(Decision, Document).where(valide_d).group_by(annee)
+        ).all()
+    )
+    par_annee_n = dict(
+        db.execute(
+            select(annee, func.count()).join_from(Nomination, Document).where(valide_n).group_by(annee)
+        ).all()
+    )
+    annees = sorted(set(par_annee_d) | set(par_annee_n))
+
+    par_type = db.execute(
+        select(Decision.type, func.count()).where(valide_d).group_by(Decision.type).order_by(func.count().desc())
+    ).all()
+
+    top_structures = db.execute(
+        select(func.coalesce(Structure.sigle, Structure.nom), func.count())
+        .join_from(Mandat, Structure)
+        .group_by(Structure.id)
+        .order_by(func.count().desc())
+        .limit(10)
+    ).all()
+
+    return {
+        "totaux": {
+            "decisions": db.scalar(select(func.count()).select_from(Decision).where(valide_d)),
+            "nominations": db.scalar(select(func.count()).select_from(Nomination).where(valide_n)),
+            "personnes": db.scalar(select(func.count(func.distinct(Mandat.personne_id)))),
+            "mandats": db.scalar(select(func.count()).select_from(Mandat)),
+            "comptes_rendus": db.scalar(
+                select(func.count()).select_from(Document).where(Document.type_doc == "cr_conseil")
+            ),
+        },
+        "par_annee": [
+            {
+                "annee": int(a),
+                "decisions": int(par_annee_d.get(a, 0)),
+                "nominations": int(par_annee_n.get(a, 0)),
+            }
+            for a in annees
+        ],
+        "decisions_par_type": [{"type": t, "n": int(n)} for t, n in par_type],
+        "top_structures": [{"structure": s, "mandats": int(n)} for s, n in top_structures],
+    }
+
+
+class MandatOut(BaseModel):
+    id: int
+    personne: str
+    poste: str
+    structure: str | None
+    date_debut: date | None
+    date_fin: date | None
+    document_url: str | None
+
+
+@router.get("/annuaire", response_model=list[MandatOut])
+def annuaire(
+    db: Session = Depends(get_db),
+    q: str | None = Query(None, min_length=2, description="Nom de personne ou de structure"),
+    en_cours: bool = Query(False, description="Seulement les mandats sans date de fin"),
+    page: int = Query(1, ge=1),
+    par_page: int = Query(25, ge=1, le=100),
+):
+    """Annuaire de l'État : mandats issus des nominations validées."""
+    stmt = select(Mandat).join(Personne).outerjoin(Structure)
+    if q:
+        motif = f"%{q}%"
+        stmt = stmt.where(
+            Personne.nom_complet.ilike(motif)
+            | Structure.nom.ilike(motif)
+            | Structure.sigle.ilike(motif)
+            | Mandat.poste.ilike(motif)
+        )
+    if en_cours:
+        stmt = stmt.where(Mandat.date_fin.is_(None))
+    stmt = (
+        stmt.order_by(Mandat.date_debut.desc().nulls_last(), Mandat.id.desc())
+        .offset((page - 1) * par_page)
+        .limit(par_page)
+    )
+    resultats = []
+    for m in db.scalars(stmt).all():
+        doc = m.nomination_debut_id and db.get(Nomination, m.nomination_debut_id)
+        resultats.append(
+            MandatOut(
+                id=m.id,
+                personne=m.personne.nom_complet,
+                poste=m.poste,
+                structure=str(m.structure) if m.structure else None,
+                date_debut=m.date_debut,
+                date_fin=m.date_fin,
+                document_url=doc.document.url if doc else None,
+            )
+        )
+    return resultats
 
 
 class SourceOut(BaseModel):

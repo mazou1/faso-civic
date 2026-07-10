@@ -52,5 +52,13 @@ services:
       api:
         condition: service_healthy
 
+  web:
+    build: ./frontend
+    ports:
+      - "8090:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
 volumes:
   pgdata:
