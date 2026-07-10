@@ -16,12 +16,20 @@ logger = logging.getLogger(__name__)
 SEUIL_TEXTE_NATIF = 100  # en dessous de ~100 caractères, on considère le PDF scanné
 
 
-def extraire_texte(path: Path) -> tuple[str, str]:
+def extraire_texte(path: Path, ocr: bool = True) -> tuple[str, str]:
+    """Renvoie (texte, statut) avec statut ∈ ok | ocr | scan | echec.
+
+    ocr=False saute la passe Tesseract : les PDF scannés sont marqués « scan »
+    pour un traitement ultérieur (utile pour les gros lots sur une machine
+    sans tesseract).
+    """
     try:
         with pdfplumber.open(path) as pdf:
             natif = "\n\n".join(page.extract_text() or "" for page in pdf.pages).strip()
             if len(natif) >= SEUIL_TEXTE_NATIF:
                 return natif, "ok"
+            if not ocr:
+                return natif, "scan"
             return _ocr(pdf), "ocr"
     except Exception:
         logger.exception("Extraction impossible : %s", path)

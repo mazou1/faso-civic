@@ -254,21 +254,27 @@ def list_textes(
         .offset((page - 1) * par_page)
         .limit(par_page)
     )
-    return [
-        TexteOut(
-            id=d.id,
-            type_doc=d.type_doc,
-            titre=d.titre,
-            reference=(d.meta or {}).get("reference"),
-            date_publication=d.date_publication,
-            secteur=(d.meta or {}).get("secteur"),
-            description=d.texte_extrait,
-            url_pdf=d.url,
-            jo_numero=(d.meta or {}).get("jo_numero"),
-            jo_url=(d.meta or {}).get("jo_url"),
+    resultats = []
+    for d in db.scalars(stmt).all():
+        meta = d.meta or {}
+        # après téléchargement du PDF, texte_extrait contient le texte intégral ;
+        # la description courte d'origine est préservée dans meta['description']
+        description = meta.get("description") or d.texte_extrait
+        resultats.append(
+            TexteOut(
+                id=d.id,
+                type_doc=d.type_doc,
+                titre=d.titre,
+                reference=meta.get("reference"),
+                date_publication=d.date_publication,
+                secteur=meta.get("secteur"),
+                description=(description[:600] if description else None),
+                url_pdf=d.url,
+                jo_numero=meta.get("jo_numero"),
+                jo_url=meta.get("jo_url"),
+            )
         )
-        for d in db.scalars(stmt).all()
-    ]
+    return resultats
 
 
 class DecisionOut(BaseModel):
