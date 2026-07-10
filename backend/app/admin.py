@@ -6,13 +6,64 @@ Remplace le rôle de Directus dans vie-publique.sn, sans service supplémentaire
 import secrets
 
 from fastapi import FastAPI
-from sqladmin import Admin, ModelView
+from sqladmin import Admin, ModelView, action
 from sqladmin.authentication import AuthenticationBackend
+from sqlalchemy import update
 from starlette.requests import Request
+from starlette.responses import RedirectResponse
 
 from app.config import settings
-from app.db import engine
+from app.db import SessionLocal, engine
 from app.models import Decision, Document, Mandat, Nomination, Personne, Run, Source, Structure
+
+
+def _pks(request: Request) -> list[int]:
+    brut = request.query_params.get("pks", "")
+    return [int(pk) for pk in brut.split(",") if pk]
+
+
+def _retour(request: Request, defaut: str) -> RedirectResponse:
+    return RedirectResponse(request.headers.get("Referer", defaut), status_code=302)
+
+
+class ValidationActionsMixin:
+    """Actions de validation en masse sur les entités extraites (cases à cocher)."""
+
+    modele: type  # Decision ou Nomination
+
+    @action(
+        name="valider",
+        label="✓ Valider la sélection",
+        confirmation_message="Valider les éléments sélectionnés ? Ils deviendront publics via l'API.",
+        add_in_detail=True,
+        add_in_list=True,
+    )
+    async def valider(self, request: Request):
+        with SessionLocal() as db:
+            db.execute(
+                update(self.modele)
+                .where(self.modele.id.in_(_pks(request)))
+                .values(statut_validation="valide")
+            )
+            db.commit()
+        return _retour(request, request.url_for("admin:list", identity=self.identity))
+
+    @action(
+        name="rejeter",
+        label="✗ Rejeter la sélection",
+        confirmation_message="Rejeter les éléments sélectionnés ?",
+        add_in_detail=True,
+        add_in_list=True,
+    )
+    async def rejeter(self, request: Request):
+        with SessionLocal() as db:
+            db.execute(
+                update(self.modele)
+                .where(self.modele.id.in_(_pks(request)))
+                .values(statut_validation="rejete")
+            )
+            db.commit()
+        return _retour(request, request.url_for("admin:list", identity=self.identity))
 
 
 class AdminAuth(AuthenticationBackend):
@@ -51,11 +102,40 @@ class DocumentAdmin(ModelView, model=Document):
     ]
     column_searchable_list = [Document.titre, Document.url]
     column_default_sort = ("id", True)
+    page_size = 100
     icon = "fa-solid fa-file-lines"
 
+    @action(
+        name="valider_contenu",
+        label="✓ Valider décisions + nominations de ces CR",
+        confirmation_message=(
+            "Valider TOUTES les décisions et nominations extraites des documents "
+            "sélectionnés ? Elles deviendront publiques via l'API."
+        ),
+        add_in_detail=True,
+        add_in_list=True,
+    )
+    async def valider_contenu(self, request: Request):
+        pks = _pks(request)
+        with SessionLocal() as db:
+            for modele in (Decision, Nomination):
+                db.execute(
+                    update(modele)
+                    .where(
+                        modele.document_id.in_(pks),
+                        modele.statut_validation == "a_valider",
+                    )
+                    .values(statut_validation="valide")
+                )
+            db.commit()
+        return _retour(request, request.url_for("admin:list", identity=self.identity))
 
-class NominationAdmin(ModelView, model=Nomination):
+
+class NominationAdmin(ValidationActionsMixin, ModelView, model=Nomination):
+    modele = Nomination
     name_plural = "Nominations (validation)"
+    page_size = 100
+    column_sortable_list = [Nomination.id, Nomination.statut_validation, Nomination.score_confiance]
     column_list = [
         Nomination.id,
         Nomination.personne,
@@ -69,8 +149,11 @@ class NominationAdmin(ModelView, model=Nomination):
     icon = "fa-solid fa-user-check"
 
 
-class DecisionAdmin(ModelView, model=Decision):
+class DecisionAdmin(ValidationActionsMixin, ModelView, model=Decision):
+    modele = Decision
     name_plural = "Décisions (validation)"
+    page_size = 100
+    column_sortable_list = [Decision.id, Decision.type, Decision.statut_validation]
     column_list = [
         Decision.id,
         Decision.document,
