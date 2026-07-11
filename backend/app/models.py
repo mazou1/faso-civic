@@ -264,6 +264,30 @@ class DotationBudgetaire(Base):
         return f"{self.exercice} — {self.ministere[:40]}"
 
 
+class RepartitionBudgetaire(Base):
+    """Répartition du budget d'un exercice : recettes par catégorie, dépenses par nature.
+
+    Alimentée depuis les documents officiels (loi de finances, Budget citoyen,
+    comptes rendus) — saisie assistée, chaque ligne sourcée.
+    """
+
+    __tablename__ = "repartition_budgetaire"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    exercice: Mapped[int] = mapped_column(Integer, index=True)
+    sens: Mapped[str] = mapped_column(String(10), index=True)  # recette | depense
+    libelle: Mapped[str] = mapped_column(String(300))
+    montant_fcfa: Mapped[int] = mapped_column(BigInteger)
+    document_id: Mapped[int | None] = mapped_column(ForeignKey("document.id"))
+    source_libre: Mapped[str | None] = mapped_column(String(500))  # référence si hors corpus
+    statut_validation: Mapped[str] = mapped_column(String(20), default="a_valider", index=True)
+
+    document: Mapped[Document | None] = relationship()
+
+    def __str__(self) -> str:
+        return f"{self.exercice} {self.sens} — {self.libelle[:40]}"
+
+
 class Mandat(Base):
     """Vue consolidée dérivée des nominations validées — alimente l'annuaire."""
 

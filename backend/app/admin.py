@@ -24,6 +24,7 @@ from app.models import (
     MembreGouvernement,
     Nomination,
     Personne,
+    RepartitionBudgetaire,
     Run,
     Source,
     Structure,
@@ -244,6 +245,31 @@ class DotationAdmin(ValidationActionsMixin, ModelView, model=DotationBudgetaire)
     icon = "fa-solid fa-sack-dollar"
 
 
+class RepartitionAdmin(ValidationActionsMixin, ModelView, model=RepartitionBudgetaire):
+    modele = RepartitionBudgetaire
+    name_plural = "Répartitions budgétaires (saisie)"
+    column_list = [
+        RepartitionBudgetaire.exercice,
+        RepartitionBudgetaire.sens,
+        RepartitionBudgetaire.libelle,
+        RepartitionBudgetaire.montant_fcfa,
+        RepartitionBudgetaire.source_libre,
+        RepartitionBudgetaire.statut_validation,
+    ]
+    form_columns = [
+        RepartitionBudgetaire.exercice,
+        RepartitionBudgetaire.sens,
+        RepartitionBudgetaire.libelle,
+        RepartitionBudgetaire.montant_fcfa,
+        RepartitionBudgetaire.document,
+        RepartitionBudgetaire.source_libre,
+        RepartitionBudgetaire.statut_validation,
+    ]
+    column_sortable_list = [RepartitionBudgetaire.exercice, RepartitionBudgetaire.montant_fcfa]
+    column_default_sort = [("exercice", True), ("montant_fcfa", True)]
+    icon = "fa-solid fa-chart-pie"
+
+
 class MembreGouvernementAdmin(ValidationActionsMixin, ModelView, model=MembreGouvernement):
     modele = MembreGouvernement
     name_plural = "Gouvernement (composition)"
@@ -308,6 +334,7 @@ def mount_admin(app: FastAPI) -> None:
         EngagementAdmin,
         BudgetAdmin,
         DotationAdmin,
+        RepartitionAdmin,
         MembreGouvernementAdmin,
         PersonneAdmin,
         StructureAdmin,

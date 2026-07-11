@@ -133,24 +133,29 @@ def gouvernement(db: Session = Depends(get_db)) -> dict:
         .order_by(MembreGouvernement.ordre)
     ).all()
     doc = membres[0].document if membres else None
-    femmes = sum(1 for m in membres if m.genre == "F")
+    # ordre -1 = Président du Faso (préside le Conseil, hors effectif gouvernement)
+    gouv = [m for m in membres if m.ordre >= 0]
+    femmes = sum(1 for m in gouv if m.genre == "F")
+
+    def _sortie(m):
+        return {
+            "ordre": m.ordre,
+            "civilite": m.civilite,
+            "nom_complet": m.nom_complet,
+            "poste": m.poste,
+            "photo_url": m.photo_url,
+        }
+
     return {
         "source": {
             "titre": doc.titre if doc else None,
             "date": doc.date_publication if doc else None,
             "url": doc.url if doc else None,
         },
-        "stats": {"membres": len(membres), "femmes": femmes},
-        "membres": [
-            {
-                "ordre": m.ordre,
-                "civilite": m.civilite,
-                "nom_complet": m.nom_complet,
-                "poste": m.poste,
-                "photo_url": m.photo_url,
-            }
-            for m in membres
-        ],
+        "stats": {"membres": len(gouv), "femmes": femmes},
+        "president": next((_sortie(m) for m in membres if m.ordre == -1), None),
+        "premier_ministre": next((_sortie(m) for m in gouv if m.ordre == 0), None),
+        "ministres": [_sortie(m) for m in gouv if m.ordre > 0],
     }
 
 
@@ -361,16 +366,28 @@ def finances_stats(db: Session = Depends(get_db)) -> dict:
         )
         .order_by(BudgetExercice.exercice, BudgetExercice.id)
     ).all()
-    from app.models import DotationBudgetaire
+    from app.models import DotationBudgetaire, RepartitionBudgetaire
 
     dotations = db.execute(
         select(
             DotationBudgetaire.exercice,
             DotationBudgetaire.ministere,
             DotationBudgetaire.montant_fcfa,
+            DotationBudgetaire.source_libre,
         )
         .where(DotationBudgetaire.statut_validation == "valide")
         .order_by(DotationBudgetaire.exercice.desc(), DotationBudgetaire.montant_fcfa.desc())
+    ).all()
+    repartitions = db.execute(
+        select(
+            RepartitionBudgetaire.exercice,
+            RepartitionBudgetaire.sens,
+            RepartitionBudgetaire.libelle,
+            RepartitionBudgetaire.montant_fcfa,
+            RepartitionBudgetaire.source_libre,
+        )
+        .where(RepartitionBudgetaire.statut_validation == "valide")
+        .order_by(RepartitionBudgetaire.exercice.desc(), RepartitionBudgetaire.montant_fcfa.desc())
     ).all()
 
     return {
@@ -402,8 +419,12 @@ def finances_stats(db: Session = Depends(get_db)) -> dict:
             for b in budgets
         ],
         "dotations": [
-            {"exercice": ex, "ministere": mi, "montant_fcfa": int(m)}
-            for ex, mi, m in dotations
+            {"exercice": ex, "ministere": mi, "montant_fcfa": int(m), "source": src}
+            for ex, mi, m, src in dotations
+        ],
+        "repartitions": [
+            {"exercice": ex, "sens": s, "libelle": l, "montant_fcfa": int(m), "source": src}
+            for ex, s, l, m, src in repartitions
         ],
     }
 

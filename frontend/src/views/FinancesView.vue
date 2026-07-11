@@ -45,19 +45,63 @@
     </div>
   </template>
 
+  <template v-if="exercicesDetail.length">
+    <h2 style="margin-top: 28px">
+      Où va l'argent, d'où vient-il —
+      <select v-model.number="exerciceDetail">
+        <option v-for="ex in exercicesDetail" :key="ex" :value="ex">{{ ex }}</option>
+      </select>
+    </h2>
+    <div class="grille-repartitions">
+      <section class="carte repartition" v-if="recettesDetail.length">
+        <h3>Répartition des recettes</h3>
+        <p class="note">D'où viennent les ressources de l'État : impôts et taxes, recettes de services, dons.</p>
+        <div class="ligne" v-for="r in recettesDetail" :key="r.libelle">
+          <div class="entete">
+            <span class="part">{{ pctLigne(r.montant_fcfa, recettesDetail) }}</span>
+            <span class="lib">{{ r.libelle }}</span>
+            <span class="montant">{{ fmtFCFA(r.montant_fcfa) }}</span>
+          </div>
+          <div class="jauge"><div class="rempli recette" :style="{ width: pctLigne(r.montant_fcfa, recettesDetail) }"></div></div>
+        </div>
+      </section>
+      <section class="carte repartition" v-if="depensesDetail.length">
+        <h3>Répartition des dépenses</h3>
+        <p class="note">Où passe l'argent public : salaires, fonctionnement, investissements, dette.</p>
+        <div class="ligne" v-for="r in depensesDetail" :key="r.libelle">
+          <div class="entete">
+            <span class="part">{{ pctLigne(r.montant_fcfa, depensesDetail) }}</span>
+            <span class="lib">{{ r.libelle }}</span>
+            <span class="montant">{{ fmtFCFA(r.montant_fcfa) }}</span>
+          </div>
+          <div class="jauge"><div class="rempli depense" :style="{ width: pctLigne(r.montant_fcfa, depensesDetail) }"></div></div>
+        </div>
+      </section>
+    </div>
+    <section class="carte repartition" v-if="dotationsDetail.length" style="margin-top: 14px">
+      <h3>Allocations par secteur</h3>
+      <p class="note">
+        Les grandes allocations budgétaires publiées pour {{ exerciceDetail }} — en pourcentage
+        des dépenses totales de l'exercice.
+      </p>
+      <div class="ligne" v-for="d in dotationsDetail" :key="d.ministere">
+        <div class="entete">
+          <span class="part">{{ pctDotation(d.montant_fcfa) }}</span>
+          <span class="lib">{{ d.ministere }}</span>
+          <span class="montant">{{ fmtFCFA(d.montant_fcfa) }}</span>
+        </div>
+        <div class="jauge"><div class="rempli ministere" :style="{ width: pctDotation(d.montant_fcfa) }"></div></div>
+      </div>
+    </section>
+    <p class="note sources" v-if="sourcesDetail.length">
+      Sources : {{ sourcesDetail.join(" · ") }}
+    </p>
+  </template>
+
   <div class="grille-graphes" v-if="stats">
     <div class="carte graphe-large" v-if="stats.budgets.length">
       <h2>Budget de l'État par exercice — recettes et dépenses</h2>
       <div ref="elBudgets" class="graphe" style="height: 260px"></div>
-    </div>
-    <div class="carte graphe-large" v-if="exercicesDotations.length">
-      <h2>
-        Dotations par ministère —
-        <select v-model.number="exerciceDotation" @change="montrerDotations()">
-          <option v-for="ex in exercicesDotations" :key="ex" :value="ex">{{ ex }}</option>
-        </select>
-      </h2>
-      <div ref="elDotations" class="graphe" :style="{ height: hauteurDotations }"></div>
     </div>
     <div class="carte">
       <h2>Montants engagés par année de conseil</h2>
@@ -114,7 +158,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { apiGet } from "../api";
 import { baseOptions, monter, roles } from "../charts";
 
@@ -158,10 +202,8 @@ const chargement = ref(false);
 const elBudgets = ref(null);
 const elAnnees = ref(null);
 const elMinisteres = ref(null);
-const elDotations = ref(null);
-const exerciceDotation = ref(null);
+const exerciceDetail = ref(null);
 const nettoyages = [];
-let nettoyerDotations = null;
 let minuterie = null;
 
 const exercices = computed(() => {
@@ -194,17 +236,41 @@ function fmtVariation(v) {
   return ` · ${signe}${Math.abs(v).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} % vs ${budgetPrecedent.value.exercice}`;
 }
 
-const exercicesDotations = computed(() =>
-  [...new Set((stats.value?.dotations ?? []).map((d) => d.exercice))].sort((a, b) => b - a),
+const exercicesDetail = computed(() =>
+  [
+    ...new Set([
+      ...(stats.value?.dotations ?? []).map((d) => d.exercice),
+      ...(stats.value?.repartitions ?? []).map((r) => r.exercice),
+    ]),
+  ].sort((a, b) => b - a),
 );
-const dotationsAffichees = computed(() =>
-  (stats.value?.dotations ?? [])
-    .filter((d) => d.exercice === exerciceDotation.value)
-    .sort((a, b) => b.montant_fcfa - a.montant_fcfa),
+const recettesDetail = computed(() =>
+  (stats.value?.repartitions ?? []).filter(
+    (r) => r.exercice === exerciceDetail.value && r.sens === "recette",
+  ),
 );
-const hauteurDotations = computed(
-  () => `${Math.max(220, dotationsAffichees.value.length * 26 + 50)}px`,
+const depensesDetail = computed(() =>
+  (stats.value?.repartitions ?? []).filter(
+    (r) => r.exercice === exerciceDetail.value && r.sens === "depense",
+  ),
 );
+const dotationsDetail = computed(() =>
+  (stats.value?.dotations ?? []).filter((d) => d.exercice === exerciceDetail.value),
+);
+function pctLigne(montant, lignes) {
+  const total = lignes.reduce((s, l) => s + l.montant_fcfa, 0);
+  return total ? `${((montant / total) * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %` : "0 %";
+}
+// part d'une allocation sectorielle dans les dépenses totales de l'exercice
+function pctDotation(montant) {
+  const b = lignesBudget.value.find((l) => l.exercice === exerciceDetail.value);
+  const total = b?.depenses_fcfa;
+  return total ? `${((montant / total) * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %` : "—";
+}
+const sourcesDetail = computed(() => {
+  const lignes = [...recettesDetail.value, ...depensesDetail.value, ...dotationsDetail.value];
+  return [...new Set(lignes.map((l) => (l.source || "").split(" — ")[0]).filter(Boolean))];
+});
 
 function fmtFCFA(n) {
   if (n == null) return "—";
@@ -256,10 +322,10 @@ onMounted(async () => {
     axisLabel: { color: c.texteSecondaire, formatter: (v) => `${enMds(v)} Mds` },
   };
 
-  if (s.dotations?.length) {
-    exerciceDotation.value = exercicesDotations.value[0];
-    await nextTick();
-    montrerDotations();
+  if (exercicesDetail.value.length) {
+    const annee = new Date().getFullYear();
+    exerciceDetail.value =
+      exercicesDetail.value.find((ex) => ex <= annee) ?? exercicesDetail.value[0];
   }
 
   if (s.budgets.length && elBudgets.value) {
@@ -370,48 +436,22 @@ onMounted(async () => {
   }
 });
 
-function montrerDotations() {
-  if (!elDotations.value) return;
-  nettoyerDotations?.();
-  const c = roles();
-  const lignes = dotationsAffichees.value;
-  nettoyerDotations = monter(elDotations.value, {
-    ...baseOptions(c),
-    grid: { left: 8, right: 16, top: 8, bottom: 8, containLabel: true },
-    tooltip: {
-      trigger: "axis",
-      axisPointer: { type: "shadow" },
-      backgroundColor: c.surface,
-      borderColor: c.grille,
-      textStyle: { color: c.texte },
-      valueFormatter: (v) => fmtFCFA(v),
-    },
-    xAxis: {
-      type: "value",
-      splitLine: { lineStyle: { color: c.grille } },
-      axisLabel: { color: c.texteSecondaire, formatter: (v) => `${enMds(v)} Mds` },
-    },
-    yAxis: {
-      type: "category",
-      data: lignes.map((d) => d.ministere),
-      inverse: true,
-      axisLine: { show: false },
-      axisTick: { show: false },
-      axisLabel: { color: c.texte, width: 200, overflow: "truncate" },
-    },
-    series: [
-      {
-        type: "bar",
-        data: lignes.map((d) => d.montant_fcfa),
-        barWidth: 14,
-        itemStyle: { color: c.serie1, borderRadius: [0, 4, 4, 0] },
-      },
-    ],
-  });
-}
-
-onBeforeUnmount(() => {
-  nettoyages.forEach((fn) => fn());
-  nettoyerDotations?.();
-});
+onBeforeUnmount(() => nettoyages.forEach((fn) => fn()));
 </script>
+
+<style scoped>
+.grille-repartitions { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; }
+.repartition h3 { margin: 0 0 4px; }
+.repartition .note { color: var(--text-secondary); font-size: 0.88rem; margin: 0 0 14px; }
+.ligne { margin-bottom: 12px; }
+.ligne .entete { display: flex; gap: 8px; align-items: baseline; margin-bottom: 4px; }
+.ligne .part { flex: none; min-width: 52px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ligne .lib { flex: 1; }
+.ligne .montant { flex: none; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.jauge { height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--border) 55%, transparent); overflow: hidden; }
+.rempli { height: 100%; border-radius: 4px; }
+.rempli.recette { background: var(--series-1); }
+.rempli.depense { background: #1baf7a; }
+.rempli.ministere { background: var(--series-1); }
+.sources { color: var(--text-secondary); font-size: 0.82rem; margin-top: 10px; }
+</style>
