@@ -14,7 +14,18 @@ from starlette.responses import RedirectResponse
 
 from app.config import settings
 from app.db import SessionLocal, engine
-from app.models import Decision, Document, Mandat, Nomination, Personne, Run, Source, Structure
+from app.models import (
+    BudgetExercice,
+    Decision,
+    Document,
+    EngagementFinancier,
+    Mandat,
+    Nomination,
+    Personne,
+    Run,
+    Source,
+    Structure,
+)
 
 
 def _pks(request: Request) -> list[int]:
@@ -168,6 +179,46 @@ class DecisionAdmin(ValidationActionsMixin, ModelView, model=Decision):
     icon = "fa-solid fa-gavel"
 
 
+class EngagementAdmin(ValidationActionsMixin, ModelView, model=EngagementFinancier):
+    modele = EngagementFinancier
+    name_plural = "Engagements financiers (validation)"
+    page_size = 100
+    column_sortable_list = [
+        EngagementFinancier.id,
+        EngagementFinancier.montant_fcfa,
+        EngagementFinancier.statut_validation,
+    ]
+    column_list = [
+        EngagementFinancier.id,
+        EngagementFinancier.document,
+        EngagementFinancier.type,
+        EngagementFinancier.objet,
+        EngagementFinancier.beneficiaire,
+        EngagementFinancier.montant_fcfa,
+        EngagementFinancier.score_confiance,
+        EngagementFinancier.statut_validation,
+    ]
+    column_searchable_list = [EngagementFinancier.objet, EngagementFinancier.beneficiaire]
+    column_default_sort = ("montant_fcfa", True)
+    icon = "fa-solid fa-coins"
+
+
+class BudgetAdmin(ValidationActionsMixin, ModelView, model=BudgetExercice):
+    modele = BudgetExercice
+    name_plural = "Budgets d'exercice (validation)"
+    column_list = [
+        BudgetExercice.id,
+        BudgetExercice.exercice,
+        BudgetExercice.type_loi,
+        BudgetExercice.recettes_fcfa,
+        BudgetExercice.depenses_fcfa,
+        BudgetExercice.score_confiance,
+        BudgetExercice.statut_validation,
+    ]
+    column_default_sort = ("exercice", True)
+    icon = "fa-solid fa-scale-balanced"
+
+
 class PersonneAdmin(ModelView, model=Personne):
     column_list = [Personne.id, Personne.nom_complet, Personne.nom_normalise]
     column_searchable_list = [Personne.nom_complet]
@@ -213,6 +264,8 @@ def mount_admin(app: FastAPI) -> None:
         DocumentAdmin,
         DecisionAdmin,
         NominationAdmin,
+        EngagementAdmin,
+        BudgetAdmin,
         PersonneAdmin,
         StructureAdmin,
         MandatAdmin,

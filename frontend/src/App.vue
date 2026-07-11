@@ -6,6 +6,7 @@
         <router-link to="/">Tableau de bord</router-link>
         <router-link to="/decisions">Décisions</router-link>
         <router-link to="/textes">Lois & décrets</router-link>
+        <router-link to="/finances">Finances</router-link>
         <router-link to="/nominations">Nominations</router-link>
         <router-link to="/annuaire">Annuaire de l'État</router-link>
       </nav>

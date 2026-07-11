@@ -15,14 +15,20 @@ import sys
 from sqlalchemy import func, select, update
 
 from app.db import SessionLocal
-from app.models import Decision, Nomination
+from app.models import BudgetExercice, Decision, EngagementFinancier, Nomination
 
 
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     seuil = float(sys.argv[1]) if len(sys.argv) > 1 else 0.9
     with SessionLocal() as db:
-        for modele, nom in ((Decision, "décisions"), (Nomination, "nominations")):
+        cibles = (
+            (Decision, "décisions"),
+            (Nomination, "nominations"),
+            (EngagementFinancier, "engagements financiers"),
+            (BudgetExercice, "budgets d'exercice"),
+        )
+        for modele, nom in cibles:
             valides = db.execute(
                 update(modele)
                 .where(

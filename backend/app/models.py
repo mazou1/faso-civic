@@ -11,6 +11,7 @@ from __future__ import annotations
 from datetime import date, datetime
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     Date,
     DateTime,
@@ -148,6 +149,49 @@ class Decision(Base):
 
     def __str__(self) -> str:
         return f"[{self.type}] {self.objet[:80]}"
+
+
+class EngagementFinancier(Base):
+    """Dépense/engagement chiffré décidé en Conseil des ministres :
+    marché public, convention, subvention, prêt, garantie…"""
+
+    __tablename__ = "engagement_financier"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    document_id: Mapped[int] = mapped_column(ForeignKey("document.id"))
+    ministere: Mapped[str | None] = mapped_column(String(300))
+    # marche | convention | subvention | pret | garantie | decaissement | autre
+    type: Mapped[str] = mapped_column(String(30), default="autre", index=True)
+    objet: Mapped[str] = mapped_column(Text)
+    beneficiaire: Mapped[str | None] = mapped_column(String(500))
+    montant_fcfa: Mapped[int | None] = mapped_column(BigInteger, index=True)
+    score_confiance: Mapped[float | None] = mapped_column(Float)
+    statut_validation: Mapped[str] = mapped_column(String(20), default="a_valider", index=True)
+
+    document: Mapped[Document] = relationship()
+
+    def __str__(self) -> str:
+        return f"[{self.type}] {self.objet[:60]}"
+
+
+class BudgetExercice(Base):
+    """Chiffres agrégés d'une loi de finances adoptée en Conseil des ministres."""
+
+    __tablename__ = "budget_exercice"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    document_id: Mapped[int] = mapped_column(ForeignKey("document.id"))
+    exercice: Mapped[int] = mapped_column(Integer, index=True)
+    type_loi: Mapped[str] = mapped_column(String(20), default="initiale")  # initiale | rectificative | reglement
+    recettes_fcfa: Mapped[int | None] = mapped_column(BigInteger)
+    depenses_fcfa: Mapped[int | None] = mapped_column(BigInteger)
+    score_confiance: Mapped[float | None] = mapped_column(Float)
+    statut_validation: Mapped[str] = mapped_column(String(20), default="a_valider", index=True)
+
+    document: Mapped[Document] = relationship()
+
+    def __str__(self) -> str:
+        return f"Budget {self.exercice} ({self.type_loi})"
 
 
 class Mandat(Base):

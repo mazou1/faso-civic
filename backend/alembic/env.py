@@ -20,6 +20,8 @@ def include_name(name, type_, parent_names) -> bool:
         return name in target_metadata.tables
     if type_ == "column" and name == "tsv":
         return False
+    if type_ == "index" and name == "ix_document_tsv":
+        return False
     return True
 
 

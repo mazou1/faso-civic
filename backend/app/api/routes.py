@@ -6,7 +6,17 @@ from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
-from app.models import Decision, Document, Mandat, Nomination, Personne, Source, Structure
+from app.models import (
+    BudgetExercice,
+    Decision,
+    Document,
+    EngagementFinancier,
+    Mandat,
+    Nomination,
+    Personne,
+    Source,
+    Structure,
+)
 
 router = APIRouter()
 
@@ -83,6 +93,128 @@ def stats(db: Session = Depends(get_db)) -> dict:
         "decisions_par_type": [{"type": t, "n": int(n)} for t, n in par_type],
         "top_structures": [{"structure": s, "mandats": int(n)} for s, n in top_structures],
     }
+
+
+@router.get("/finances/stats")
+def finances_stats(db: Session = Depends(get_db)) -> dict:
+    """Agrégats financiers — engagements et budgets validés uniquement."""
+    valide = EngagementFinancier.statut_validation == "valide"
+    annee = func.extract("year", Document.date_publication).label("annee")
+
+    par_annee = db.execute(
+        select(annee, func.count(), func.sum(EngagementFinancier.montant_fcfa))
+        .join_from(EngagementFinancier, Document)
+        .where(valide)
+        .group_by(annee)
+        .order_by(annee)
+    ).all()
+    par_type = db.execute(
+        select(EngagementFinancier.type, func.count(), func.sum(EngagementFinancier.montant_fcfa))
+        .where(valide)
+        .group_by(EngagementFinancier.type)
+        .order_by(func.sum(EngagementFinancier.montant_fcfa).desc())
+    ).all()
+    par_ministere = db.execute(
+        select(EngagementFinancier.ministere, func.sum(EngagementFinancier.montant_fcfa))
+        .where(valide, EngagementFinancier.ministere.is_not(None))
+        .group_by(EngagementFinancier.ministere)
+        .order_by(func.sum(EngagementFinancier.montant_fcfa).desc())
+        .limit(10)
+    ).all()
+    budgets = db.scalars(
+        select(BudgetExercice)
+        .where(
+            BudgetExercice.statut_validation == "valide",
+            BudgetExercice.recettes_fcfa.is_not(None)
+            | BudgetExercice.depenses_fcfa.is_not(None),
+        )
+        .order_by(BudgetExercice.exercice, BudgetExercice.id)
+    ).all()
+
+    return {
+        "totaux": {
+            "engagements": db.scalar(
+                select(func.count()).select_from(EngagementFinancier).where(valide)
+            ),
+            "montant_total_fcfa": int(
+                db.scalar(select(func.sum(EngagementFinancier.montant_fcfa)).where(valide)) or 0
+            ),
+        },
+        "par_annee": [
+            {"annee": int(a), "engagements": int(n), "montant_fcfa": int(m or 0)}
+            for a, n, m in par_annee
+        ],
+        "par_type": [
+            {"type": t, "engagements": int(n), "montant_fcfa": int(m or 0)} for t, n, m in par_type
+        ],
+        "par_ministere": [
+            {"ministere": mi, "montant_fcfa": int(m or 0)} for mi, m in par_ministere
+        ],
+        "budgets": [
+            {
+                "exercice": b.exercice,
+                "type_loi": b.type_loi,
+                "recettes_fcfa": b.recettes_fcfa,
+                "depenses_fcfa": b.depenses_fcfa,
+            }
+            for b in budgets
+        ],
+    }
+
+
+class EngagementOut(BaseModel):
+    id: int
+    document_url: str
+    date_conseil: date | None
+    ministere: str | None
+    type: str
+    objet: str
+    beneficiaire: str | None
+    montant_fcfa: int | None
+
+
+@router.get("/finances/engagements", response_model=list[EngagementOut])
+def list_engagements(
+    db: Session = Depends(get_db),
+    type: str | None = None,
+    q: str | None = Query(None, min_length=2, description="Filtre sur objet/bénéficiaire/ministère"),
+    tri: str = Query("montant", description="montant | date"),
+    page: int = Query(1, ge=1),
+    par_page: int = Query(20, ge=1, le=100),
+):
+    """Engagements financiers décidés en Conseil des ministres — validés uniquement."""
+    stmt = (
+        select(EngagementFinancier)
+        .join(Document)
+        .where(EngagementFinancier.statut_validation == "valide")
+    )
+    if type:
+        stmt = stmt.where(EngagementFinancier.type == type)
+    if q:
+        motif = f"%{q}%"
+        stmt = stmt.where(
+            EngagementFinancier.objet.ilike(motif)
+            | EngagementFinancier.beneficiaire.ilike(motif)
+            | EngagementFinancier.ministere.ilike(motif)
+        )
+    if tri == "date":
+        stmt = stmt.order_by(Document.date_publication.desc().nulls_last(), EngagementFinancier.id.desc())
+    else:
+        stmt = stmt.order_by(EngagementFinancier.montant_fcfa.desc().nulls_last())
+    stmt = stmt.offset((page - 1) * par_page).limit(par_page)
+    return [
+        EngagementOut(
+            id=e.id,
+            document_url=e.document.url,
+            date_conseil=e.document.date_publication,
+            ministere=e.ministere,
+            type=e.type,
+            objet=e.objet,
+            beneficiaire=e.beneficiaire,
+            montant_fcfa=e.montant_fcfa,
+        )
+        for e in db.scalars(stmt).all()
+    ]
 
 
 class MandatOut(BaseModel):
