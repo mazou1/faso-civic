@@ -11,6 +11,7 @@
         <router-link to="/textes">Lois & décrets</router-link>
         <router-link to="/finances">Finances</router-link>
         <router-link to="/annuaire">Annuaire de l'État</router-link>
+        <a href="/plan-relance/">Plan de relance</a>
       </nav>
     </div>
   </header>
