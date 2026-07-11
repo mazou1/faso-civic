@@ -1,193 +1,176 @@
 appliquer,id_source,nom_source,id_canonique,nom_canonique,similarite
-,84,Institut supérieur d’études et de protection civile,48,Institut supérieur d’études de protection civile,0.98
-,665,Secrétariat permanent du Conseil national de lutte contre le SIDA et les infections sexuellement transmissibles (CNLS/IST),410,Secrétariat permanent du Conseil national de lutte contre le sida et les infections sexuellement transmissibles (SP/CNLS-IST),0.98
-,294,"Ministère des Sports, la Jeunesse et l’Emploi",68,"Ministère des Sports, de la Jeunesse et de l’Emploi",0.98
-,375,Centrale d’achats des médicaments essentiels génériques et des consommables médicaux (CAMEG),94,Centrale d’achat des médicaments essentiels génériques et des consommables médicaux (CAMEG),0.97
-,667,"Ministère de l'Environnement, de la Eau et de l'Assainissement",208,"Ministère de l'Environnement, de l'Eau et de l'Assainissement",0.96
-,661,Secrétariat technique du Registre social unique (RSU),633,Secrétariat technique du Registre social unique (ST/RSU),0.96
-,72,Fonds d’assistance sociale et de la solidarité nationale « Seenimin »,71,Fonds d’assistance sociale et de solidarité nationale « Seenimin »,0.95
-,479,Centre hospitalier universitaire régional (CHUR) de Ouahigouya,287,Centre hospitalier universitaire régional de Ouahigouya (CHUR-OHG),0.95
-,553,Secrétariat permanent du Plan stratégique de développement de l’éducation de base et de l’enseignement secondaire (SP/PSDBS),390,Secrétariat permanent du Plan stratégique de développement de l’éducation de base et de l’enseignement secondaire (SP-PSDEBS),0.95
-,195,"Ministère de l'Agriculture, des Ressources Animales et Halieutiques",2,"Ministère de l’Agriculture, de l’Eau, des Ressources animales et halieutiques",0.95
-,628,"Ministère de lCommunication, de la Culture, des Arts et du Tourisme",40,"Ministère de la Communication, de la Culture, des Arts et du Tourisme",0.95
-,476,Centre hospitalier régional (CHR) de Dori,290,Centre hospitalier régional de Dori (CHR-DR),0.95
 ,504,Centre hospitalier régional de Fada N’Gourma,450,Centre hospitalier régional de Fada N'Gourma (CHR/Fada N'Gourma),0.94
-,506,Centre hospitalier régional de Koudougou,451,Centre hospitalier régional de Koudougou (CHR-Koudougou),0.93
-,493,Centre hospitalier universitaire de Bogodogo,478,Centre hospitalier universitaire (CHU) de Bogodogo,0.93
-,483,Centre hospitalier régional (CHR) de Manga,276,Centre hospitalier régional de Manga,0.93
-,96,Fonds d’appui au sport et à la presse privée (FASP) « Wassa Bondo »,79,Fonds d’appui au sport et à la presse privée « Wassa Bondo »,0.93
-,238,Université Norbert ZONGO,191,Université Norbert ZONGO (UNZ),0.93
-,347,Ministère de la Santé et Ministère de l’Action humanitaire et de la solidarité nationale,196,Ministère de l'Action humanitaire et de la solidarité nationale,0.93
-,479,Centre hospitalier universitaire régional (CHUR) de Ouahigouya,297,Centre hospitalier universitaire régional de Ouahigouya,0.93
-,496,Institut des sciences des sociétés,118,Institut des sciences des sociétés (INSS),0.93
 ,561,Institut supérieur des sciences de la santé,133,Institut supérieur des sciences de la santé (INSSA),0.93
+,506,Centre hospitalier régional de Koudougou,451,Centre hospitalier régional de Koudougou (CHR-Koudougou),0.93
+,483,Centre hospitalier régional (CHR) de Manga,276,Centre hospitalier régional de Manga,0.93
+,238,Université Norbert ZONGO,191,Université Norbert ZONGO (UNZ),0.93
+,96,Fonds d’appui au sport et à la presse privée (FASP) « Wassa Bondo »,79,Fonds d’appui au sport et à la presse privée « Wassa Bondo »,0.93
+,496,Institut des sciences des sociétés,118,Institut des sciences des sociétés (INSS),0.93
+,493,Centre hospitalier universitaire de Bogodogo,478,Centre hospitalier universitaire (CHU) de Bogodogo,0.93
+,347,Ministère de la Santé et Ministère de l’Action humanitaire et de la solidarité nationale,196,Ministère de l'Action humanitaire et de la solidarité nationale,0.93
 ,179,Institut national de formation en travail social,25,Institut national de formation en travail social (INFTS),0.92
 ,454,Centre hospitalier universitaire Sourô SANOU (CHU-SS),188,Centre hospitalier universitaire Sourô SANOU (CHUSS),0.92
-,507,Centre hospitalier régional de Dori,476,Centre hospitalier régional (CHR) de Dori,0.92
-,460,Agence nationale de promotion des technologies de l’information et de la communication (ANPTIC),70,Agence nationale de promotion des technologies de l’information et de la communication,0.92
 ,462,Salon international de l’artisanat de Ouagadougou (SIAO),168,Salon international de l’artisanat de Ouagadougou,0.92
-,153,Agence nationale de biosécurité (ANB),85,Agence nationale de biosécurité,0.91
-,563,Unité de formation et de recherche en sciences exactes et appliquées,128,Unité de formation et de recherche en Sciences exactes et appliquées (UFR/SEA),0.91
-,568,Unité de formation et de recherche en sciences humaines,126,Unité de formation et de recherche en Sciences humaines (UFR/SH),0.91
-,526,Chambre de commerce et d’industrie du Burkina Faso,292,Chambre de commerce et d’industrie du Burkina Faso (CCI-BF),0.91
-,116,Institut de l’environnement et de recherches agricoles (INERA),114,Institut de l’environnement et de recherche agricole (INERA),0.91
-,172,Université Nazi BONI,57,Université Nazi BONI (UNB),0.91
-,453,Centre hospitalier universitaire pédiatrique Charles de GAULLE (CHUP-CDG),283,Centre hospitalier universitaire pédiatrique Charles de Gaulle,0.91
-,446,Secrétariat permanent de la Filière coton libéralisée (SP-FCL),182,Secrétariat permanent de la filière coton libéralisée,0.91
+,460,Agence nationale de promotion des technologies de l’information et de la communication (ANPTIC),70,Agence nationale de promotion des technologies de l’information et de la communication,0.92
 ,489,Groupement d’intérêt public-Programme national de volontariat au Burkina Faso (GIP-PNVB),39,Groupement d’intérêt public/Programme national de volontariat du Burkina Faso (GIP-PNV),0.91
-,372,Institut supérieur d'études de protection civile (ISEPC),48,Institut supérieur d’études de protection civile,0.91
+,568,Unité de formation et de recherche en sciences humaines,126,Unité de formation et de recherche en Sciences humaines (UFR/SH),0.91
 ,158,Caisse nationale d’assurance maladie universelle (CNAMU),76,Caisse nationale d’assurance maladie universelle,0.91
+,446,Secrétariat permanent de la Filière coton libéralisée (SP-FCL),182,Secrétariat permanent de la filière coton libéralisée,0.91
 ,690,Office de santé des travailleurs (OST),102,Office de santé des travailleurs,0.91
+,372,Institut supérieur d'études de protection civile (ISEPC),48,Institut supérieur d’études de protection civile,0.91
+,116,Institut de l’environnement et de recherches agricoles (INERA),114,Institut de l’environnement et de recherche agricole (INERA),0.91
 ,567,Institut du développement rural,134,Institut du développement rural (IDR),0.91
-,499,Centre hospitalier universitaire Yalgado OUEDRAOGO,54,Centre hospitalier universitaire Yalgado OUEDRAOGO (CHU-YO),0.91
+,563,Unité de formation et de recherche en sciences exactes et appliquées,128,Unité de formation et de recherche en Sciences exactes et appliquées (UFR/SEA),0.91
+,526,Chambre de commerce et d’industrie du Burkina Faso,292,Chambre de commerce et d’industrie du Burkina Faso (CCI-BF),0.91
+,153,Agence nationale de biosécurité (ANB),85,Agence nationale de biosécurité,0.91
 ,157,Conseil burkinabè des chargeurs (CBC),149,Conseil burkinabè des chargeurs,0.91
-,438,Université Thomas SANKARA (UTS),237,Université Thomas SANKARA,0.90
-,459,Agence nationale du domaine foncier des organismes publics (ANDFOP),407,Agence nationale du domaine foncier des organismes publics,0.90
-,659,École nationale de la garde de sécurité pénitentiaire,18,École nationale des Gardes de sécurité pénitentiaire,0.90
-,565,Unité de formation et de recherche en sciences de la vie et de la terre,127,Unité de formation et de recherche en Sciences de la vie et de la terre (UFR/SVT),0.90
-,223,Direction générale de la police nationale,175,Direction générale de la police nationale (DGPN),0.90
-,569,"Unité de formation et de recherche en lettres, arts et communication",125,"Unité de formation et de recherche en Lettres, arts et communication (UFR/LAC)",0.90
+,453,Centre hospitalier universitaire pédiatrique Charles de GAULLE (CHUP-CDG),283,Centre hospitalier universitaire pédiatrique Charles de Gaulle,0.91
+,499,Centre hospitalier universitaire Yalgado OUEDRAOGO,54,Centre hospitalier universitaire Yalgado OUEDRAOGO (CHU-YO),0.91
+,172,Université Nazi BONI,57,Université Nazi BONI (UNB),0.91
 ,236,Université Daniel Ouezzin COULIBALY,192,Université Daniel OUEZZIN COULIBALY (UDOC),0.90
+,609,Agence nationale de gestion et de recouvrement des avoirs saisis ou confisqués (ANAGRASC),516,Agence nationale de gestion et de recouvrement des avoirs saisis ou confisqués,0.90
+,626,Conseil national du patronat burkinabè,465,Conseil national du patronat burkinabè (CNPB),0.90
+,629,Tribunal de Grande instance Ouaga II,380,Tribunal de grande instance de Ouaga I et Ouaga II,0.90
+,223,Direction générale de la police nationale,175,Direction générale de la police nationale (DGPN),0.90
 ,240,Université Yembila Abdoulaye TOGUYENI,58,Université Yembila Abdoulaye TOGUYENI (UYAT),0.90
 ,662,Université virtuelle du Burkina Faso,235,Université virtuelle du Burkina Faso (UV-BF),0.90
+,659,École nationale de la garde de sécurité pénitentiaire,18,École nationale des Gardes de sécurité pénitentiaire,0.90
+,438,Université Thomas SANKARA (UTS),237,Université Thomas SANKARA,0.90
+,459,Agence nationale du domaine foncier des organismes publics (ANDFOP),407,Agence nationale du domaine foncier des organismes publics,0.90
+,565,Unité de formation et de recherche en sciences de la vie et de la terre,127,Unité de formation et de recherche en Sciences de la vie et de la terre (UFR/SVT),0.90
 ,566,"Unité de formation et de recherche en sciences humaines, lettres, arts et médias",135,"Unité de formation et de recherche en Sciences humaines, Lettres, arts et médias (UFR/SH-LAM)",0.90
-,629,Tribunal de Grande instance Ouaga II,380,Tribunal de grande instance de Ouaga I et Ouaga II,0.90
-,626,Conseil national du patronat burkinabè,465,Conseil national du patronat burkinabè (CNPB),0.90
-,609,Agence nationale de gestion et de recouvrement des avoirs saisis ou confisqués (ANAGRASC),516,Agence nationale de gestion et de recouvrement des avoirs saisis ou confisqués,0.90
-,558,École nationale de formation agricole de Matourkou,89,École nationale de formation agricole de Matourkou (ENAFA),0.89
-,188,Centre hospitalier universitaire Sourô SANOU (CHUSS),83,Centre hospitalier universitaire Sourô SANOU,0.89
+,569,"Unité de formation et de recherche en lettres, arts et communication",125,"Unité de formation et de recherche en Lettres, arts et communication (UFR/LAC)",0.90
 ,148,Agence burkinabè pour l’emploi (ABPE),17,Agence burkinabè pour l’emploi,0.89
-,297,Centre hospitalier universitaire régional de Ouahigouya,287,Centre hospitalier universitaire régional de Ouahigouya (CHUR-OHG),0.89
-,329,École nationale de police (ENP),82,École nationale de police,0.89
 ,139,Institut du développement dural (IDR),134,Institut du développement rural (IDR),0.89
-,372,Institut supérieur d'études de protection civile (ISEPC),84,Institut supérieur d’études et de protection civile,0.89
-,454,Centre hospitalier universitaire Sourô SANOU (CHU-SS),83,Centre hospitalier universitaire Sourô SANOU,0.89
 ,571,Unité de formation et de recherche en sciences de la santé,129,Unité de formation et de recherche en Sciences de la santé (UFR/SDS),0.89
+,454,Centre hospitalier universitaire Sourô SANOU (CHU-SS),83,Centre hospitalier universitaire Sourô SANOU,0.89
+,329,École nationale de police (ENP),82,École nationale de police,0.89
+,558,École nationale de formation agricole de Matourkou,89,École nationale de formation agricole de Matourkou (ENAFA),0.89
 ,554,Agence de l’eau du Gourma (AEG),494,Agence de l’eau du Gourma,0.89
+,297,Centre hospitalier universitaire régional de Ouahigouya,287,Centre hospitalier universitaire régional de Ouahigouya (CHUR-OHG),0.89
+,188,Centre hospitalier universitaire Sourô SANOU (CHUSS),83,Centre hospitalier universitaire Sourô SANOU,0.89
 ,507,Centre hospitalier régional de Dori,290,Centre hospitalier régional de Dori (CHR-DR),0.88
-,193,Université Joseph KI-ZERBO (UJKZ),185,Université Joseph KI-ZERBO,0.87
-,509,Centre hospitalier régional de Banfora,288,Centre hospitalier régional de Banfora (CHR-BFR),0.87
-,155,Conseil de régulation de l’Autorité de régulation de la commande publique (ARCOP),1,Autorité de régulation de la commande publique (ARCOP),0.87
 ,505,Centre hospitalier régional de Tenkodogo,289,Centre hospitalier régional de Tenkodogo (CHR-TNK),0.87
+,509,Centre hospitalier régional de Banfora,288,Centre hospitalier régional de Banfora (CHR-BFR),0.87
+,193,Université Joseph KI-ZERBO (UJKZ),185,Université Joseph KI-ZERBO,0.87
+,155,Conseil de régulation de l’Autorité de régulation de la commande publique (ARCOP),1,Autorité de régulation de la commande publique (ARCOP),0.87
 ,689,Fonds national de solidarité et de la résilience sociale,266,Fonds national de solidarité et de résilience sociale (FNS-RS),0.86
 ,100,Institut Deen Kanu,53,Institut DEEN KANU (IDK),0.86
 ,403,Bureau national des sols (BUNASOLS),101,Bureau national des sols,0.86
-,652,Direction provinciale de la police nationale du Poni,650,Direction provinciale de la police nationale du Nayala,0.85
 ,212,"Ministère de l'Enseignement supérieur, de la Recherche scientifique et de l'Innovation",15,"Ministère de l’Enseignement supérieur, de la Recherche et de l’Innovation",0.85
-,126,Unité de formation et de recherche en Sciences humaines (UFR/SH),121,Unité de formation et de recherche en Lettres et sciences humaines (UFR/LSH),0.84
-,654,Direction provinciale de la police nationale du Séno,652,Direction provinciale de la police nationale du Poni,0.84
-,656,Direction provinciale de la police nationale du Yatenga,653,Direction provinciale de la police nationale du Sanmatenga,0.84
-,702,Université Joseph KI-ZERBO (ISSP),185,Université Joseph KI-ZERBO,0.84
+,652,Direction provinciale de la police nationale du Poni,650,Direction provinciale de la police nationale du Nayala,0.85
 ,508,Centre hospitalier régional de Dédougou,506,Centre hospitalier régional de Koudougou,0.84
+,702,Université Joseph KI-ZERBO (ISSP),185,Université Joseph KI-ZERBO,0.84
+,654,Direction provinciale de la police nationale du Séno,652,Direction provinciale de la police nationale du Poni,0.84
 ,652,Direction provinciale de la police nationale du Poni,645,Direction provinciale de la police nationale du Ioba,0.84
+,126,Unité de formation et de recherche en Sciences humaines (UFR/SH),121,Unité de formation et de recherche en Lettres et sciences humaines (UFR/LSH),0.84
+,656,Direction provinciale de la police nationale du Yatenga,653,Direction provinciale de la police nationale du Sanmatenga,0.84
 ,556,Institut supérieur de protection civile,48,Institut supérieur d’études de protection civile,0.83
-,701,Université Joseph KI-ZERBO (IFOAD),185,Université Joseph KI-ZERBO,0.82
-,384,Tribunal de grande instance de Dédougou,382,Tribunal de grande instance de Koudougou,0.82
-,654,Direction provinciale de la police nationale du Séno,650,Direction provinciale de la police nationale du Nayala,0.82
-,640,Direction provinciale de la police nationale du Boulkiemdé,639,Direction provinciale de la police nationale du Boulgou,0.82
 ,650,Direction provinciale de la police nationale du Nayala,645,Direction provinciale de la police nationale du Ioba,0.82
+,701,Université Joseph KI-ZERBO (IFOAD),185,Université Joseph KI-ZERBO,0.82
 ,652,Direction provinciale de la police nationale du Poni,644,Direction provinciale de la police nationale du Houet,0.82
-,556,Institut supérieur de protection civile,84,Institut supérieur d’études et de protection civile,0.82
+,654,Direction provinciale de la police nationale du Séno,650,Direction provinciale de la police nationale du Nayala,0.82
+,384,Tribunal de grande instance de Dédougou,382,Tribunal de grande instance de Koudougou,0.82
+,640,Direction provinciale de la police nationale du Boulkiemdé,639,Direction provinciale de la police nationale du Boulgou,0.82
 ,162,Fonds de soutien à l’éducation et la recherche (FOSER) Bângr Baoobo,12,Fonds de soutien à l’éducation et à la recherche (FOSER),0.81
-,655,Direction provinciale de la police nationale du Sourou,654,Direction provinciale de la police nationale du Séno,0.81
-,332,Centre national de la recherche scientifique et technologique (CNRST) - Institut des sciences des sociétés (INSS),331,Centre national de la recherche scientifique et technologique (CNRST) - Institut de recherche en sciences de la santé (IRSS),0.81
+,648,Direction provinciale de la police nationale du Kourwéogo,647,Direction provinciale de la police nationale du Koulpélogo,0.81
 ,514,"Ministère de l’Économie, des Finances et de la Prospective (Direction provinciale)",513,"Ministère de l’Économie, des Finances et de la Prospective (Direction régionale)",0.81
 ,141,Unité de formation et de recherche en sciences et techniques (UFR/ST),122,Unité de formation et de recherche en Sciences et technologies (UFR/ST),0.81
-,648,Direction provinciale de la police nationale du Kourwéogo,647,Direction provinciale de la police nationale du Koulpélogo,0.81
-,655,Direction provinciale de la police nationale du Sourou,652,Direction provinciale de la police nationale du Poni,0.80
-,652,Direction provinciale de la police nationale du Poni,643,Direction provinciale de la police nationale du Gourma,0.80
+,332,Centre national de la recherche scientifique et technologique (CNRST) - Institut des sciences des sociétés (INSS),331,Centre national de la recherche scientifique et technologique (CNRST) - Institut de recherche en sciences de la santé (IRSS),0.81
+,655,Direction provinciale de la police nationale du Sourou,654,Direction provinciale de la police nationale du Séno,0.81
 ,652,Direction provinciale de la police nationale du Poni,638,Direction provinciale de la police nationale des Balé,0.80
-,278,Agence de gestion des soins de santé primaire,47,Agence nationale de gestion des soins de santé primaires,0.80
-,654,Direction provinciale de la police nationale du Séno,645,Direction provinciale de la police nationale du Ioba,0.80
-,333,Centre national de la recherche scientifique et technologique (CNRST) - Institut de recherche en sciences appliquées et technologies (IRSAT),331,Centre national de la recherche scientifique et technologique (CNRST) - Institut de recherche en sciences de la santé (IRSS),0.80
+,652,Direction provinciale de la police nationale du Poni,643,Direction provinciale de la police nationale du Gourma,0.80
 ,573,Air Burkina SA,99,Air Burkina,0.80
-,650,Direction provinciale de la police nationale du Nayala,644,Direction provinciale de la police nationale du Houet,0.80
-,567,Institut du développement rural,139,Institut du développement dural (IDR),0.80
 ,142,Unité de formation et de recherche en Sciences juridiques et politiques (UFR/SJP),138,"Unité de formation et recherche en Sciences juridiques, politiques, économiques et de gestion (UFR/SJPEG)",0.80
-,123,Unité de formation et de recherche en Sciences appliquées et technologies (UFR/SAT),122,Unité de formation et de recherche en Sciences et technologies (UFR/ST),0.79
-,568,Unité de formation et de recherche en sciences humaines,121,Unité de formation et de recherche en Lettres et sciences humaines (UFR/LSH),0.79
-,440,"Ministère de la Transition numérique, des Postes et des Communications électroniques",36,"Ministère de la Transition digitale, des Postes et des Communications électroniques",0.79
-,389,Tribunal de grande instance de Dori,110,Tribunal de grande instance de Pô,0.79
-,388,Tribunal de grande instance de Léo,110,Tribunal de grande instance de Pô,0.79
-,384,Tribunal de grande instance de Dédougou,108,Tribunal de grande instance de Diébougou,0.79
-,656,Direction provinciale de la police nationale du Yatenga,652,Direction provinciale de la police nationale du Poni,0.79
-,643,Direction provinciale de la police nationale du Gourma,642,Direction provinciale de la police nationale du Ganzourgou,0.79
-,652,Direction provinciale de la police nationale du Poni,646,Direction provinciale de la police nationale du Kadiogo,0.79
-,655,Direction provinciale de la police nationale du Sourou,650,Direction provinciale de la police nationale du Nayala,0.79
+,650,Direction provinciale de la police nationale du Nayala,644,Direction provinciale de la police nationale du Houet,0.80
+,333,Centre national de la recherche scientifique et technologique (CNRST) - Institut de recherche en sciences appliquées et technologies (IRSAT),331,Centre national de la recherche scientifique et technologique (CNRST) - Institut de recherche en sciences de la santé (IRSS),0.80
+,567,Institut du développement rural,139,Institut du développement dural (IDR),0.80
+,278,Agence de gestion des soins de santé primaire,47,Agence nationale de gestion des soins de santé primaires,0.80
+,655,Direction provinciale de la police nationale du Sourou,652,Direction provinciale de la police nationale du Poni,0.80
+,654,Direction provinciale de la police nationale du Séno,645,Direction provinciale de la police nationale du Ioba,0.80
 ,645,Direction provinciale de la police nationale du Ioba,644,Direction provinciale de la police nationale du Houet,0.79
+,123,Unité de formation et de recherche en Sciences appliquées et technologies (UFR/SAT),122,Unité de formation et de recherche en Sciences et technologies (UFR/ST),0.79
+,384,Tribunal de grande instance de Dédougou,108,Tribunal de grande instance de Diébougou,0.79
+,388,Tribunal de grande instance de Léo,110,Tribunal de grande instance de Pô,0.79
+,389,Tribunal de grande instance de Dori,110,Tribunal de grande instance de Pô,0.79
+,440,"Ministère de la Transition numérique, des Postes et des Communications électroniques",36,"Ministère de la Transition digitale, des Postes et des Communications électroniques",0.79
+,568,Unité de formation et de recherche en sciences humaines,121,Unité de formation et de recherche en Lettres et sciences humaines (UFR/LSH),0.79
+,643,Direction provinciale de la police nationale du Gourma,642,Direction provinciale de la police nationale du Ganzourgou,0.79
 ,648,Direction provinciale de la police nationale du Kourwéogo,646,Direction provinciale de la police nationale du Kadiogo,0.79
-,652,Direction provinciale de la police nationale du Poni,649,Direction provinciale de la police nationale du Mouhoun,0.79
-,657,Direction provinciale de la police nationale du Zondoma,652,Direction provinciale de la police nationale du Poni,0.79
 ,650,Direction provinciale de la police nationale du Nayala,643,Direction provinciale de la police nationale du Gourma,0.79
 ,652,Direction provinciale de la police nationale du Poni,639,Direction provinciale de la police nationale du Boulgou,0.79
+,652,Direction provinciale de la police nationale du Poni,646,Direction provinciale de la police nationale du Kadiogo,0.79
+,652,Direction provinciale de la police nationale du Poni,649,Direction provinciale de la police nationale du Mouhoun,0.79
 ,654,Direction provinciale de la police nationale du Séno,644,Direction provinciale de la police nationale du Houet,0.79
+,655,Direction provinciale de la police nationale du Sourou,650,Direction provinciale de la police nationale du Nayala,0.79
+,656,Direction provinciale de la police nationale du Yatenga,652,Direction provinciale de la police nationale du Poni,0.79
+,657,Direction provinciale de la police nationale du Zondoma,652,Direction provinciale de la police nationale du Poni,0.79
 ,686,"Département de Kalsaka, Province du Yatenga",685,"Département de Kaïn, Province du Yatenga",0.79
-,655,Direction provinciale de la police nationale du Sourou,643,Direction provinciale de la police nationale du Gourma,0.78
-,508,Centre hospitalier régional de Dédougou,451,Centre hospitalier régional de Koudougou (CHR-Koudougou),0.78
-,652,Direction provinciale de la police nationale du Poni,641,Direction provinciale de la police nationale de la Comoé,0.78
 ,649,Direction provinciale de la police nationale du Mouhoun,644,Direction provinciale de la police nationale du Houet,0.78
-,650,Direction provinciale de la police nationale du Nayala,638,Direction provinciale de la police nationale des Balé,0.78
 ,507,Centre hospitalier régional de Dori,46,Centre hospitalier régional de Kaya,0.78
-,641,Direction provinciale de la police nationale de la Comoé,638,Direction provinciale de la police nationale des Balé,0.78
-,593,Tribunal de grande instance de Ouagadougou,384,Tribunal de grande instance de Dédougou,0.78
+,508,Centre hospitalier régional de Dédougou,451,Centre hospitalier régional de Koudougou (CHR-Koudougou),0.78
 ,658,Direction provinciale de la police nationale du Zoundwéogo,648,Direction provinciale de la police nationale du Kourwéogo,0.78
-,654,Direction provinciale de la police nationale du Séno,643,Direction provinciale de la police nationale du Gourma,0.77
-,591,Tribunal de grande instance de Kaya,110,Tribunal de grande instance de Pô,0.77
-,387,Tribunal de grande instance de Gaoua,110,Tribunal de grande instance de Pô,0.77
-,135,"Unité de formation et de recherche en Sciences humaines, Lettres, arts et médias (UFR/SH-LAM)",121,Unité de formation et de recherche en Lettres et sciences humaines (UFR/LSH),0.77
-,655,Direction provinciale de la police nationale du Sourou,645,Direction provinciale de la police nationale du Ioba,0.77
+,641,Direction provinciale de la police nationale de la Comoé,638,Direction provinciale de la police nationale des Balé,0.78
+,655,Direction provinciale de la police nationale du Sourou,643,Direction provinciale de la police nationale du Gourma,0.78
+,652,Direction provinciale de la police nationale du Poni,641,Direction provinciale de la police nationale de la Comoé,0.78
+,593,Tribunal de grande instance de Ouagadougou,384,Tribunal de grande instance de Dédougou,0.78
+,650,Direction provinciale de la police nationale du Nayala,638,Direction provinciale de la police nationale des Balé,0.78
+,650,Direction provinciale de la police nationale du Nayala,639,Direction provinciale de la police nationale du Boulgou,0.77
 ,656,Direction provinciale de la police nationale du Yatenga,650,Direction provinciale de la police nationale du Nayala,0.77
-,647,Direction provinciale de la police nationale du Koulpélogo,646,Direction provinciale de la police nationale du Kadiogo,0.77
-,650,Direction provinciale de la police nationale du Nayala,646,Direction provinciale de la police nationale du Kadiogo,0.77
+,655,Direction provinciale de la police nationale du Sourou,645,Direction provinciale de la police nationale du Ioba,0.77
 ,645,Direction provinciale de la police nationale du Ioba,643,Direction provinciale de la police nationale du Gourma,0.77
 ,650,Direction provinciale de la police nationale du Nayala,649,Direction provinciale de la police nationale du Mouhoun,0.77
+,647,Direction provinciale de la police nationale du Koulpélogo,646,Direction provinciale de la police nationale du Kadiogo,0.77
 ,657,Direction provinciale de la police nationale du Zondoma,650,Direction provinciale de la police nationale du Nayala,0.77
+,387,Tribunal de grande instance de Gaoua,110,Tribunal de grande instance de Pô,0.77
+,591,Tribunal de grande instance de Kaya,110,Tribunal de grande instance de Pô,0.77
+,650,Direction provinciale de la police nationale du Nayala,646,Direction provinciale de la police nationale du Kadiogo,0.77
 ,389,Tribunal de grande instance de Dori,388,Tribunal de grande instance de Léo,0.77
-,650,Direction provinciale de la police nationale du Nayala,639,Direction provinciale de la police nationale du Boulgou,0.77
-,483,Centre hospitalier régional (CHR) de Manga,476,Centre hospitalier régional (CHR) de Dori,0.77
-,702,Université Joseph KI-ZERBO (ISSP),701,Université Joseph KI-ZERBO (IFOAD),0.76
-,450,Centre hospitalier régional de Fada N'Gourma (CHR/Fada N'Gourma),93,Centre hospitalier régional universitaire (CHRU) de Fada N’Gourma,0.76
-,507,Centre hospitalier régional de Dori,276,Centre hospitalier régional de Manga,0.76
-,510,Centre hospitalier régional de Gaoua,507,Centre hospitalier régional de Dori,0.76
-,513,"Ministère de l’Économie, des Finances et de la Prospective (Direction régionale)",210,"Ministère de l'Économie, des Finances et de la Prospective",0.76
-,514,"Ministère de l’Économie, des Finances et de la Prospective (Direction provinciale)",210,"Ministère de l'Économie, des Finances et de la Prospective",0.76
-,566,"Unité de formation et de recherche en sciences humaines, lettres, arts et médias",121,Unité de formation et de recherche en Lettres et sciences humaines (UFR/LSH),0.76
+,654,Direction provinciale de la police nationale du Séno,643,Direction provinciale de la police nationale du Gourma,0.77
+,135,"Unité de formation et de recherche en Sciences humaines, Lettres, arts et médias (UFR/SH-LAM)",121,Unité de formation et de recherche en Lettres et sciences humaines (UFR/LSH),0.77
+,656,Direction provinciale de la police nationale du Yatenga,654,Direction provinciale de la police nationale du Séno,0.76
+,646,Direction provinciale de la police nationale du Kadiogo,645,Direction provinciale de la police nationale du Ioba,0.76
+,649,Direction provinciale de la police nationale du Mouhoun,645,Direction provinciale de la police nationale du Ioba,0.76
+,650,Direction provinciale de la police nationale du Nayala,641,Direction provinciale de la police nationale de la Comoé,0.76
 ,571,Unité de formation et de recherche en sciences de la santé,565,Unité de formation et de recherche en sciences de la vie et de la terre,0.76
+,566,"Unité de formation et de recherche en sciences humaines, lettres, arts et médias",121,Unité de formation et de recherche en Lettres et sciences humaines (UFR/LSH),0.76
+,669,Région du Centre-Ouest,355,Région du Centre-Est,0.76
+,652,Direction provinciale de la police nationale du Poni,640,Direction provinciale de la police nationale du Boulkiemdé,0.76
+,514,"Ministère de l’Économie, des Finances et de la Prospective (Direction provinciale)",210,"Ministère de l'Économie, des Finances et de la Prospective",0.76
+,513,"Ministère de l’Économie, des Finances et de la Prospective (Direction régionale)",210,"Ministère de l'Économie, des Finances et de la Prospective",0.76
+,702,Université Joseph KI-ZERBO (ISSP),701,Université Joseph KI-ZERBO (IFOAD),0.76
+,652,Direction provinciale de la police nationale du Poni,648,Direction provinciale de la police nationale du Kourwéogo,0.76
+,510,Centre hospitalier régional de Gaoua,507,Centre hospitalier régional de Dori,0.76
+,654,Direction provinciale de la police nationale du Séno,638,Direction provinciale de la police nationale des Balé,0.76
+,654,Direction provinciale de la police nationale du Séno,639,Direction provinciale de la police nationale du Boulgou,0.76
+,654,Direction provinciale de la police nationale du Séno,646,Direction provinciale de la police nationale du Kadiogo,0.76
+,654,Direction provinciale de la police nationale du Séno,649,Direction provinciale de la police nationale du Mouhoun,0.76
+,507,Centre hospitalier régional de Dori,276,Centre hospitalier régional de Manga,0.76
+,655,Direction provinciale de la police nationale du Sourou,639,Direction provinciale de la police nationale du Boulgou,0.76
+,655,Direction provinciale de la police nationale du Sourou,644,Direction provinciale de la police nationale du Houet,0.76
+,450,Centre hospitalier régional de Fada N'Gourma (CHR/Fada N'Gourma),93,Centre hospitalier régional universitaire (CHRU) de Fada N’Gourma,0.76
+,656,Direction provinciale de la police nationale du Yatenga,645,Direction provinciale de la police nationale du Ioba,0.76
+,657,Direction provinciale de la police nationale du Zondoma,643,Direction provinciale de la police nationale du Gourma,0.76
+,657,Direction provinciale de la police nationale du Zondoma,645,Direction provinciale de la police nationale du Ioba,0.76
+,657,Direction provinciale de la police nationale du Zondoma,654,Direction provinciale de la police nationale du Séno,0.76
 ,629,Tribunal de Grande instance Ouaga II,593,Tribunal de grande instance de Ouagadougou,0.76
 ,643,Direction provinciale de la police nationale du Gourma,639,Direction provinciale de la police nationale du Boulgou,0.76
 ,644,Direction provinciale de la police nationale du Houet,643,Direction provinciale de la police nationale du Gourma,0.76
 ,645,Direction provinciale de la police nationale du Ioba,638,Direction provinciale de la police nationale des Balé,0.76
 ,645,Direction provinciale de la police nationale du Ioba,639,Direction provinciale de la police nationale du Boulgou,0.76
-,646,Direction provinciale de la police nationale du Kadiogo,645,Direction provinciale de la police nationale du Ioba,0.76
-,649,Direction provinciale de la police nationale du Mouhoun,645,Direction provinciale de la police nationale du Ioba,0.76
-,650,Direction provinciale de la police nationale du Nayala,641,Direction provinciale de la police nationale de la Comoé,0.76
-,652,Direction provinciale de la police nationale du Poni,640,Direction provinciale de la police nationale du Boulkiemdé,0.76
-,652,Direction provinciale de la police nationale du Poni,648,Direction provinciale de la police nationale du Kourwéogo,0.76
-,654,Direction provinciale de la police nationale du Séno,638,Direction provinciale de la police nationale des Balé,0.76
-,654,Direction provinciale de la police nationale du Séno,639,Direction provinciale de la police nationale du Boulgou,0.76
-,654,Direction provinciale de la police nationale du Séno,646,Direction provinciale de la police nationale du Kadiogo,0.76
-,654,Direction provinciale de la police nationale du Séno,649,Direction provinciale de la police nationale du Mouhoun,0.76
-,655,Direction provinciale de la police nationale du Sourou,639,Direction provinciale de la police nationale du Boulgou,0.76
-,655,Direction provinciale de la police nationale du Sourou,644,Direction provinciale de la police nationale du Houet,0.76
-,656,Direction provinciale de la police nationale du Yatenga,645,Direction provinciale de la police nationale du Ioba,0.76
-,656,Direction provinciale de la police nationale du Yatenga,654,Direction provinciale de la police nationale du Séno,0.76
-,657,Direction provinciale de la police nationale du Zondoma,643,Direction provinciale de la police nationale du Gourma,0.76
-,657,Direction provinciale de la police nationale du Zondoma,645,Direction provinciale de la police nationale du Ioba,0.76
-,657,Direction provinciale de la police nationale du Zondoma,654,Direction provinciale de la police nationale du Séno,0.76
-,669,Région du Centre-Ouest,355,Région du Centre-Est,0.76
-,654,Direction provinciale de la police nationale du Séno,653,Direction provinciale de la police nationale du Sanmatenga,0.75
-,702,Université Joseph KI-ZERBO (ISSP),193,Université Joseph KI-ZERBO (UJKZ),0.75
-,654,Direction provinciale de la police nationale du Séno,641,Direction provinciale de la police nationale de la Comoé,0.75
-,645,Direction provinciale de la police nationale du Ioba,641,Direction provinciale de la police nationale de la Comoé,0.75
-,644,Direction provinciale de la police nationale du Houet,638,Direction provinciale de la police nationale des Balé,0.75
-,639,Direction provinciale de la police nationale du Boulgou,638,Direction provinciale de la police nationale des Balé,0.75
-,591,Tribunal de grande instance de Kaya,389,Tribunal de grande instance de Dori,0.75
-,591,Tribunal de grande instance de Kaya,388,Tribunal de grande instance de Léo,0.75
-,140,Unité de formation et de recherche en Sciences économiques et de gestion (UFR/SEG),138,"Unité de formation et recherche en Sciences juridiques, politiques, économiques et de gestion (UFR/SJPEG)",0.75
-,556,Institut supérieur de protection civile,372,Institut supérieur d'études de protection civile (ISEPC),0.75
-,455,"Ministère de l’Administration territoriale, de la Décentralisation et de la Sécurité",213,"Ministère de l’Administration Territoriale, de la Décentralisation et de la Cohésion Sociale",0.75
-,656,Direction provinciale de la police nationale du Yatenga,651,Direction provinciale de la police nationale de l’Oubritenga,0.75
 ,389,Tribunal de grande instance de Dori,387,Tribunal de grande instance de Gaoua,0.75
+,645,Direction provinciale de la police nationale du Ioba,641,Direction provinciale de la police nationale de la Comoé,0.75
 ,388,Tribunal de grande instance de Léo,387,Tribunal de grande instance de Gaoua,0.75
-,348,"Ministère de l’Industrie, du commerce, de l’artisanat et Ministère de l’Énergie, des mines et des carrières",6,"Ministère de l’Industrie, du Commerce et de l’Artisanat",0.75
+,702,Université Joseph KI-ZERBO (ISSP),193,Université Joseph KI-ZERBO (UJKZ),0.75
+,591,Tribunal de grande instance de Kaya,389,Tribunal de grande instance de Dori,0.75
+,644,Direction provinciale de la police nationale du Houet,638,Direction provinciale de la police nationale des Balé,0.75
 ,655,Direction provinciale de la police nationale du Sourou,642,Direction provinciale de la police nationale du Ganzourgou,0.75
+,140,Unité de formation et de recherche en Sciences économiques et de gestion (UFR/SEG),138,"Unité de formation et recherche en Sciences juridiques, politiques, économiques et de gestion (UFR/SJPEG)",0.75
+,455,"Ministère de l’Administration territoriale, de la Décentralisation et de la Sécurité",213,"Ministère de l’Administration Territoriale, de la Décentralisation et de la Cohésion Sociale",0.75
+,639,Direction provinciale de la police nationale du Boulgou,638,Direction provinciale de la police nationale des Balé,0.75
+,591,Tribunal de grande instance de Kaya,388,Tribunal de grande instance de Léo,0.75
+,654,Direction provinciale de la police nationale du Séno,653,Direction provinciale de la police nationale du Sanmatenga,0.75
+,656,Direction provinciale de la police nationale du Yatenga,651,Direction provinciale de la police nationale de l’Oubritenga,0.75
+,348,"Ministère de l’Industrie, du commerce, de l’artisanat et Ministère de l’Énergie, des mines et des carrières",6,"Ministère de l’Industrie, du Commerce et de l’Artisanat",0.75
+,654,Direction provinciale de la police nationale du Séno,641,Direction provinciale de la police nationale de la Comoé,0.75
+,556,Institut supérieur de protection civile,372,Institut supérieur d'études de protection civile (ISEPC),0.75
