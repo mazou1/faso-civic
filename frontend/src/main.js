@@ -17,8 +17,9 @@ const router = createRouter({
     { path: "/gouvernement", name: "gouvernement", component: () => import("./views/GouvernementView.vue") },
     { path: "/assemblee", name: "assemblee", component: () => import("./views/AssembleeView.vue") },
     { path: "/a-propos", name: "a-propos", component: () => import("./views/AProposView.vue") },
-    { path: "/nominations", name: "nominations", component: () => import("./views/NominationsView.vue") },
     { path: "/annuaire", name: "annuaire", component: () => import("./views/AnnuaireView.vue") },
+    { path: "/annuaire/nominations", name: "nominations", component: () => import("./views/NominationsView.vue") },
+    { path: "/nominations", redirect: "/annuaire/nominations" },
   ],
   scrollBehavior: () => ({ top: 0 }),
 });

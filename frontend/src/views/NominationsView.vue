@@ -1,16 +1,22 @@
 <template>
-  <h1>Nominations officielles</h1>
+  <h1>Annuaire de l'État</h1>
   <p class="sous-titre">
-    Personnes nommées en Conseil des ministres, avec poste, structure et lien vers le compte rendu.
+    Le flux des nominations officielles en Conseil des ministres, chacune reliée à son compte rendu.
   </p>
 
-  <div class="filtres">
+  <nav class="onglets">
+    <router-link to="/annuaire">Annuaire</router-link>
+    <router-link to="/annuaire/nominations" class="actif">Nominations</router-link>
+  </nav>
+
+  <div class="filtres entete-recherche">
     <input
       v-model="q"
       type="search"
       placeholder="Rechercher une personne (ex : SABO, OUEDRAOGO…)"
       @input="rechercherDebounce"
     />
+    <span class="compteur" v-if="total !== null">{{ total.toLocaleString("fr-FR") }} nominations</span>
   </div>
 
   <div class="liste">
@@ -32,21 +38,24 @@
 
   <div class="pagination">
     <button :disabled="page <= 1" @click="page--; recharger()">← Précédent</button>
-    <span>Page {{ page }}</span>
-    <button :disabled="nominations.length < PAR_PAGE" @click="page++; recharger()">Suivant →</button>
+    <span>Page {{ page }}<template v-if="pages"> / {{ pages }}</template></span>
+    <button :disabled="page >= pages" @click="page++; recharger()">Suivant →</button>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { apiGet } from "../api";
 
 const PAR_PAGE = 20;
 const nominations = ref([]);
+const total = ref(null);
 const q = ref("");
 const page = ref(1);
 const chargement = ref(false);
 let minuterie = null;
+
+const pages = computed(() => (total.value ? Math.ceil(total.value / PAR_PAGE) : 0));
 
 function formatDate(d) {
   return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
@@ -55,7 +64,9 @@ function formatDate(d) {
 async function recharger() {
   chargement.value = true;
   try {
-    nominations.value = await apiGet("/nominations", { q: q.value, page: page.value, par_page: PAR_PAGE });
+    const r = await apiGet("/nominations", { q: q.value, page: page.value, par_page: PAR_PAGE });
+    nominations.value = r.nominations;
+    total.value = r.total;
   } finally {
     chargement.value = false;
   }
@@ -71,3 +82,9 @@ function rechercherDebounce() {
 
 onMounted(recharger);
 </script>
+
+<style scoped>
+.entete-recherche { align-items: center; }
+.entete-recherche input { flex: 1; max-width: 420px; }
+.compteur { margin-left: auto; color: var(--text-muted); font-size: 0.88rem; }
+</style>

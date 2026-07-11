@@ -70,10 +70,12 @@ function formatDate(d) {
 }
 
 onMounted(async () => {
-  [data.value, lois.value] = await Promise.all([
+  const [d, t] = await Promise.all([
     apiGet("/assemblee"),
     apiGet("/textes", { type: "loi", par_page: 5 }),
   ]);
+  data.value = d;
+  lois.value = t.textes;
 });
 </script>
 

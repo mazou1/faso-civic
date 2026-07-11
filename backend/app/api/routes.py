@@ -510,7 +510,12 @@ class MandatOut(BaseModel):
     document_url: str | None
 
 
-@router.get("/annuaire", response_model=list[MandatOut])
+class AnnuairePage(BaseModel):
+    total: int
+    mandats: list[MandatOut]
+
+
+@router.get("/annuaire", response_model=AnnuairePage)
 def annuaire(
     db: Session = Depends(get_db),
     q: str | None = Query(None, min_length=2, description="Nom de personne ou de structure"),
@@ -530,6 +535,7 @@ def annuaire(
         )
     if en_cours:
         stmt = stmt.where(Mandat.date_fin.is_(None))
+    total = db.scalar(select(func.count()).select_from(stmt.subquery()))
     stmt = (
         stmt.order_by(Mandat.date_debut.desc().nulls_last(), Mandat.id.desc())
         .offset((page - 1) * par_page)
@@ -549,7 +555,7 @@ def annuaire(
                 document_url=doc.document.url if doc else None,
             )
         )
-    return resultats
+    return AnnuairePage(total=int(total or 0), mandats=resultats)
 
 
 class SourceOut(BaseModel):
@@ -667,7 +673,12 @@ class TexteOut(BaseModel):
     jo_url: str | None
 
 
-@router.get("/textes", response_model=list[TexteOut])
+class TextesPage(BaseModel):
+    total: int
+    textes: list[TexteOut]
+
+
+@router.get("/textes", response_model=TextesPage)
 def list_textes(
     db: Session = Depends(get_db),
     q: str | None = Query(None, min_length=2, description="Recherche plein texte (français)"),
@@ -681,6 +692,7 @@ def list_textes(
         stmt = stmt.where(Document.type_doc == type)
     if q:
         stmt = stmt.where(text("document.tsv @@ websearch_to_tsquery('french', :q)")).params(q=q)
+    total = db.scalar(select(func.count()).select_from(stmt.subquery()))
     stmt = (
         stmt.order_by(Document.date_publication.desc().nulls_last(), Document.id.desc())
         .offset((page - 1) * par_page)
@@ -706,7 +718,7 @@ def list_textes(
                 jo_url=meta.get("jo_url"),
             )
         )
-    return resultats
+    return TextesPage(total=int(total or 0), textes=resultats)
 
 
 class DecisionOut(BaseModel):
@@ -768,7 +780,12 @@ class NominationOut(BaseModel):
     type: str
 
 
-@router.get("/nominations", response_model=list[NominationOut])
+class NominationsPage(BaseModel):
+    total: int
+    nominations: list[NominationOut]
+
+
+@router.get("/nominations", response_model=NominationsPage)
 def list_nominations(
     db: Session = Depends(get_db),
     q: str | None = Query(None, description="Recherche sur le nom de la personne"),
@@ -785,22 +802,26 @@ def list_nominations(
         from app.models import Personne
 
         stmt = stmt.join(Personne).where(Personne.nom_complet.ilike(f"%{q}%"))
+    total = db.scalar(select(func.count()).select_from(stmt.subquery()))
     stmt = (
         stmt.order_by(Document.date_publication.desc().nulls_last(), Nomination.id.desc())
         .offset((page - 1) * par_page)
         .limit(par_page)
     )
-    return [
-        NominationOut(
-            id=n.id,
-            document_id=n.document_id,
-            document_url=n.document.url,
-            date_conseil=n.document.date_publication,
-            personne=n.personne.nom_complet,
-            poste=n.poste,
-            structure=str(n.structure) if n.structure else None,
-            date_effet=n.date_effet,
-            type=n.type,
-        )
-        for n in db.scalars(stmt).all()
-    ]
+    return NominationsPage(
+        total=int(total or 0),
+        nominations=[
+            NominationOut(
+                id=n.id,
+                document_id=n.document_id,
+                document_url=n.document.url,
+                date_conseil=n.document.date_publication,
+                personne=n.personne.nom_complet,
+                poste=n.poste,
+                structure=str(n.structure) if n.structure else None,
+                date_effet=n.date_effet,
+                type=n.type,
+            )
+            for n in db.scalars(stmt).all()
+        ],
+    )

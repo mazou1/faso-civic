@@ -1,10 +1,16 @@
 <template>
   <h1>Annuaire de l'État</h1>
   <p class="sous-titre">
-    Mandats reconstitués à partir des nominations validées : qui occupe quel poste, dans quelle structure, depuis quand.
+    Qui occupe quel poste, dans quelle structure, depuis quand — reconstitué à partir des
+    nominations officielles en Conseil des ministres.
   </p>
 
-  <div class="filtres">
+  <nav class="onglets">
+    <router-link to="/annuaire" class="actif">Annuaire</router-link>
+    <router-link to="/annuaire/nominations">Nominations</router-link>
+  </nav>
+
+  <div class="filtres entete-recherche">
     <input
       v-model="q"
       type="search"
@@ -12,25 +18,27 @@
       @input="rechercherDebounce"
     />
     <label style="display: flex; align-items: center; gap: 6px">
-      <input v-model="enCours" type="checkbox" @change="recharger" />
-      Mandats en cours uniquement
+      <input v-model="enCours" type="checkbox" @change="page = 1; recharger()" />
+      En cours uniquement
     </label>
+    <span class="compteur" v-if="total !== null">{{ total.toLocaleString("fr-FR") }} mandats</span>
   </div>
 
-  <div class="liste">
-    <article v-for="m in mandats" :key="m.id" class="item">
-      <div class="meta">
-        <span class="badge">{{ m.date_fin ? "Terminé" : "En cours" }}</span>
-        <span v-if="m.date_debut">Depuis le {{ formatDate(m.date_debut) }}</span>
-        <span v-if="m.date_fin">→ {{ formatDate(m.date_fin) }}</span>
+  <div class="grille-mandats">
+    <article v-for="m in mandats" :key="m.id" class="carte mandat" :class="{ termine: m.date_fin }">
+      <div class="avatar">{{ initiales(m.personne) }}</div>
+      <div class="corps">
+        <div class="entete-mandat">
+          <span class="nom">{{ m.personne }}</span>
+          <span class="badge">{{ m.date_fin ? "Terminé" : "En cours" }}</span>
+        </div>
+        <div class="poste">{{ m.poste }}<template v-if="m.structure"> — {{ m.structure }}</template></div>
+        <div class="dates">
+          <template v-if="m.date_debut">Depuis le {{ formatDate(m.date_debut) }}</template>
+          <template v-if="m.date_fin"> → {{ formatDate(m.date_fin) }}</template>
+          <a v-if="m.document_url" :href="m.document_url" target="_blank" rel="noopener"> · compte rendu →</a>
+        </div>
       </div>
-      <div class="titre">{{ m.personne }}</div>
-      <div class="detail">
-        {{ m.poste }}<template v-if="m.structure"> — {{ m.structure }}</template>
-      </div>
-      <a v-if="m.document_url" class="source" :href="m.document_url" target="_blank" rel="noopener">
-        Nomination au compte rendu officiel →
-      </a>
     </article>
   </div>
 
@@ -39,36 +47,50 @@
 
   <div class="pagination">
     <button :disabled="page <= 1" @click="page--; recharger()">← Précédent</button>
-    <span>Page {{ page }}</span>
-    <button :disabled="mandats.length < PAR_PAGE" @click="page++; recharger()">Suivant →</button>
+    <span>Page {{ page }}<template v-if="pages"> / {{ pages }}</template></span>
+    <button :disabled="page >= pages" @click="page++; recharger()">Suivant →</button>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { apiGet } from "../api";
 
-const PAR_PAGE = 25;
+const PAR_PAGE = 24;
 const mandats = ref([]);
+const total = ref(null);
 const q = ref("");
 const enCours = ref(false);
 const page = ref(1);
 const chargement = ref(false);
 let minuterie = null;
 
+const pages = computed(() => (total.value ? Math.ceil(total.value / PAR_PAGE) : 0));
+
 function formatDate(d) {
   return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+}
+function initiales(nom) {
+  return nom
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase();
 }
 
 async function recharger() {
   chargement.value = true;
   try {
-    mandats.value = await apiGet("/annuaire", {
+    const r = await apiGet("/annuaire", {
       q: q.value.length >= 2 ? q.value : undefined,
       en_cours: enCours.value ? "true" : undefined,
       page: page.value,
       par_page: PAR_PAGE,
     });
+    mandats.value = r.mandats;
+    total.value = r.total;
   } finally {
     chargement.value = false;
   }
@@ -84,3 +106,24 @@ function rechercherDebounce() {
 
 onMounted(recharger);
 </script>
+
+<style scoped>
+.entete-recherche { align-items: center; }
+.entete-recherche input[type="search"] { flex: 1; max-width: 420px; }
+.compteur { margin-left: auto; color: var(--text-muted); font-size: 0.88rem; }
+
+.grille-mandats { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
+.mandat { display: flex; gap: 14px; align-items: flex-start; padding: 14px 16px; }
+.mandat.termine { opacity: 0.72; }
+.avatar {
+  flex: none; width: 44px; height: 44px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent); font-weight: 700;
+}
+.corps { min-width: 0; }
+.entete-mandat { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.entete-mandat .nom { font-weight: 700; }
+.poste { color: var(--text-secondary); font-size: 0.92rem; margin-top: 2px; }
+.dates { color: var(--text-muted); font-size: 0.82rem; margin-top: 6px; }
+</style>
