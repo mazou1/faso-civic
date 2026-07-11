@@ -51,7 +51,7 @@ const DOSSIERS = [
     etiquettes: ["3 918 Mds de dépenses", "Répartitions", "Sources officielles"],
     lien: "/finances",
     externe: false,
-    couleur: "#1c5cab",
+    couleur: "#0a6b3c",
   },
   {
     categorie: "Institutions · janvier 2026",
@@ -62,7 +62,7 @@ const DOSSIERS = [
     etiquettes: ["25 membres", "Trombinoscope", "Présidence"],
     lien: "/gouvernement",
     externe: false,
-    couleur: "#2d6a4f",
+    couleur: "#9c4a1f",
   },
 ];
 </script>

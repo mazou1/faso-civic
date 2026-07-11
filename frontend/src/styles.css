@@ -1,4 +1,7 @@
-/* Rôles de couleur (palette de référence dataviz) — light par défaut, dark auto. */
+/* Rôles de couleur aux teintes du Burkina Faso — vert (séries, accent) et doré
+   (série 2) validés par le validateur dataviz (bande L, daltonisme ΔE 25,9,
+   contraste) dans les deux modes ; le rouge du drapeau reste réservé aux
+   liserés et états. Light par défaut, dark auto. */
 :root {
   --surface-0: #f5f4f1;
   --surface-1: #fcfcfb;
@@ -6,9 +9,10 @@
   --text-primary: #0b0b0b;
   --text-secondary: #52514e;
   --text-muted: #7a786f;
-  --series-1: #2a78d6;
-  --series-1-fonce: #1c5cab;
-  --accent: #2a78d6;
+  --series-1: #15a35b;
+  --series-1-fonce: #0a6b3c; /* départ des dégradés de bandeaux (texte blanc) */
+  --series-2: #b3841a;
+  --accent: #007a38; /* liens et textes : 5,3:1 sur surface claire */
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -18,9 +22,10 @@
     --text-primary: #ffffff;
     --text-secondary: #c3c2b7;
     --text-muted: #8e8c82;
-    --series-1: #3987e5;
-    --series-1-fonce: #6da7ec;
-    --accent: #3987e5;
+    --series-1: #15a35b;
+    --series-1-fonce: #0c5c34;
+    --series-2: #b3841a;
+    --accent: #3ecf7c; /* 9,3:1 sur surface sombre */
   }
 }
 

@@ -13,7 +13,7 @@ export function roles() {
   const v = (nom) => s.getPropertyValue(nom).trim();
   return {
     serie1: v("--series-1"),
-    serie2: "#1baf7a", // slot 2 (aqua) de la palette de référence
+    serie2: v("--series-2") || "#b3841a", // doré du drapeau, validé face au vert
     texte: v("--text-primary"),
     texteSecondaire: v("--text-secondary"),
     grille: v("--border"),

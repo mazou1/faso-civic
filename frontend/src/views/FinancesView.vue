@@ -451,7 +451,7 @@ onBeforeUnmount(() => nettoyages.forEach((fn) => fn()));
 .jauge { height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--border) 55%, transparent); overflow: hidden; }
 .rempli { height: 100%; border-radius: 4px; }
 .rempli.recette { background: var(--series-1); }
-.rempli.depense { background: #1baf7a; }
+.rempli.depense { background: var(--series-2); }
 .rempli.ministere { background: var(--series-1); }
 .sources { color: var(--text-secondary); font-size: 0.82rem; margin-top: 10px; }
 </style>
