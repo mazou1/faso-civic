@@ -4,6 +4,9 @@
       <router-link to="/" class="marque">Faso<span>Civic</span></router-link>
       <nav class="nav">
         <router-link to="/">Tableau de bord</router-link>
+        <router-link to="/actualites">Actualités</router-link>
+        <router-link to="/gouvernement">Gouvernement</router-link>
+        <router-link to="/assemblee">Assemblée</router-link>
         <router-link to="/conseils">Conseils des ministres</router-link>
         <router-link to="/decisions">Décisions</router-link>
         <router-link to="/textes">Lois & décrets</router-link>

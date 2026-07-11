@@ -18,8 +18,10 @@ from app.models import (
     BudgetExercice,
     Decision,
     Document,
+    DotationBudgetaire,
     EngagementFinancier,
     Mandat,
+    MembreGouvernement,
     Nomination,
     Personne,
     Run,
@@ -219,6 +221,44 @@ class BudgetAdmin(ValidationActionsMixin, ModelView, model=BudgetExercice):
     icon = "fa-solid fa-scale-balanced"
 
 
+class DotationAdmin(ValidationActionsMixin, ModelView, model=DotationBudgetaire):
+    modele = DotationBudgetaire
+    name_plural = "Dotations budgétaires (saisie)"
+    column_list = [
+        DotationBudgetaire.exercice,
+        DotationBudgetaire.ministere,
+        DotationBudgetaire.montant_fcfa,
+        DotationBudgetaire.source_libre,
+        DotationBudgetaire.statut_validation,
+    ]
+    form_columns = [
+        DotationBudgetaire.exercice,
+        DotationBudgetaire.ministere,
+        DotationBudgetaire.montant_fcfa,
+        DotationBudgetaire.document,
+        DotationBudgetaire.source_libre,
+        DotationBudgetaire.statut_validation,
+    ]
+    column_sortable_list = [DotationBudgetaire.exercice, DotationBudgetaire.montant_fcfa]
+    column_default_sort = [("exercice", True), ("montant_fcfa", True)]
+    icon = "fa-solid fa-sack-dollar"
+
+
+class MembreGouvernementAdmin(ValidationActionsMixin, ModelView, model=MembreGouvernement):
+    modele = MembreGouvernement
+    name_plural = "Gouvernement (composition)"
+    column_list = [
+        MembreGouvernement.ordre,
+        MembreGouvernement.civilite,
+        MembreGouvernement.nom_complet,
+        MembreGouvernement.poste,
+        MembreGouvernement.actif,
+        MembreGouvernement.statut_validation,
+    ]
+    column_default_sort = ("ordre", False)
+    icon = "fa-solid fa-landmark"
+
+
 class PersonneAdmin(ModelView, model=Personne):
     column_list = [Personne.id, Personne.nom_complet, Personne.nom_normalise]
     column_searchable_list = [Personne.nom_complet]
@@ -267,6 +307,8 @@ def mount_admin(app: FastAPI) -> None:
         NominationAdmin,
         EngagementAdmin,
         BudgetAdmin,
+        DotationAdmin,
+        MembreGouvernementAdmin,
         PersonneAdmin,
         StructureAdmin,
         MandatAdmin,

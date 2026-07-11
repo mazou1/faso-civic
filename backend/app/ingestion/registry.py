@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.ingestion.base import Collector
+from app.ingestion.assemblee import AssembleeCollector
 from app.ingestion.conseil_ministres import ConseilMinistresCollector
 from app.ingestion.legiburkina import LegiburkinaCollector
 from app.ingestion.rss import make_rss_collector
@@ -30,6 +31,7 @@ SEEDS: list[tuple[str, str, str, str, str]] = [
     ("sig", "Service d'information du gouvernement", "https://www.sig.gov.bf", "institutionnel", "quotidien"),
     ("presidence", "Présidence du Faso", "https://www.presidencedufaso.bf", "institutionnel", "quotidien"),
     ("legiburkina", "Légiburkina (SGG-CM)", "https://www.legiburkina.gov.bf", "institutionnel", "quotidien"),
+    ("assemblee", "Assemblée législative", "https://www.assembleenationale.bf", "institutionnel", "quotidien"),
     ("jobf", "Journal officiel du Burkina Faso", "https://www.jobf.gov.bf", "institutionnel", "hebdo"),
 ]
 
@@ -46,6 +48,7 @@ COLLECTORS: dict[str, type[Collector]] = {
 } | {
     ConseilMinistresCollector.slug: ConseilMinistresCollector,
     LegiburkinaCollector.slug: LegiburkinaCollector,
+    AssembleeCollector.slug: AssembleeCollector,
     # Présidence : wp-json fermé (401) mais flux RSS actif — communiqués officiels
     "presidence": make_rss_collector(
         "presidence", "https://www.presidencedufaso.bf/feed/", type_doc="communique"

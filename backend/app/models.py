@@ -202,6 +202,66 @@ class BudgetExercice(Base):
         return f"Budget {self.exercice} ({self.type_loi})"
 
 
+class MembreGouvernement(Base):
+    """Composition officielle du gouvernement, issue du décret de composition."""
+
+    __tablename__ = "membre_gouvernement"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    document_id: Mapped[int] = mapped_column(ForeignKey("document.id"))  # décret source
+    ordre: Mapped[int] = mapped_column(Integer)  # ordre protocolaire dans le décret
+    civilite: Mapped[str | None] = mapped_column(String(100))  # Monsieur, Madame, grade…
+    nom_complet: Mapped[str] = mapped_column(String(300))
+    poste: Mapped[str] = mapped_column(String(500))
+    actif: Mapped[bool] = mapped_column(Boolean, default=True)
+    score_confiance: Mapped[float | None] = mapped_column(Float)
+    statut_validation: Mapped[str] = mapped_column(String(20), default="a_valider", index=True)
+
+    document: Mapped[Document] = relationship()
+
+    def __str__(self) -> str:
+        return f"{self.nom_complet} — {self.poste[:50]}"
+
+
+class Depute(Base):
+    """Membre de l'Assemblée législative (synchronisé depuis assembleenationale.bf)."""
+
+    __tablename__ = "depute"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nom_complet: Mapped[str] = mapped_column(String(300), unique=True)
+    legislature: Mapped[str | None] = mapped_column(String(50))
+    photo_url: Mapped[str | None] = mapped_column(String(500))
+    actif: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    def __str__(self) -> str:
+        return self.nom_complet
+
+
+class DotationBudgetaire(Base):
+    """Dotation d'un ministère/institution dans la loi de finances d'un exercice.
+
+    Alimentée par saisie assistée (admin) depuis les documents budgétaires
+    officiels — les LF récentes ne sont pas disponibles en données ouvertes.
+    """
+
+    __tablename__ = "dotation_budgetaire"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    exercice: Mapped[int] = mapped_column(Integer, index=True)
+    ministere: Mapped[str] = mapped_column(String(300))
+    montant_fcfa: Mapped[int] = mapped_column(BigInteger)
+    document_id: Mapped[int | None] = mapped_column(ForeignKey("document.id"))
+    source_libre: Mapped[str | None] = mapped_column(String(500))  # référence si hors corpus
+    score_confiance: Mapped[float | None] = mapped_column(Float)
+    statut_validation: Mapped[str] = mapped_column(String(20), default="a_valider", index=True)
+
+    document: Mapped[Document | None] = relationship()
+
+    def __str__(self) -> str:
+        return f"{self.exercice} — {self.ministere[:40]}"
+
+
 class Mandat(Base):
     """Vue consolidée dérivée des nominations validées — alimente l'annuaire."""
 

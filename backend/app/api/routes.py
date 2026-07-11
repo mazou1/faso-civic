@@ -100,6 +100,112 @@ def stats(db: Session = Depends(get_db)) -> dict:
     }
 
 
+@router.get("/assemblee")
+def assemblee(db: Session = Depends(get_db)) -> dict:
+    """Composition de l'Assemblée législative (synchronisée depuis le site officiel)."""
+    from app.models import Depute
+
+    deputes = db.scalars(
+        select(Depute).where(Depute.actif.is_(True)).order_by(Depute.nom_complet)
+    ).all()
+    return {
+        "stats": {
+            "deputes": len(deputes),
+            "legislature": deputes[0].legislature if deputes else None,
+        },
+        "deputes": [
+            {"nom_complet": d.nom_complet, "photo_url": d.photo_url} for d in deputes
+        ],
+    }
+
+
+@router.get("/gouvernement")
+def gouvernement(db: Session = Depends(get_db)) -> dict:
+    """Composition officielle du gouvernement (décret de composition), validée."""
+    from app.models import MembreGouvernement
+
+    membres = db.scalars(
+        select(MembreGouvernement)
+        .where(
+            MembreGouvernement.statut_validation == "valide",
+            MembreGouvernement.actif.is_(True),
+        )
+        .order_by(MembreGouvernement.ordre)
+    ).all()
+    doc = membres[0].document if membres else None
+    femmes = sum(1 for m in membres if (m.civilite or "").strip().lower() == "madame")
+    return {
+        "decret": {
+            "titre": doc.titre if doc else None,
+            "date": doc.date_publication if doc else None,
+            "url": doc.url if doc else None,
+        },
+        "stats": {"membres": len(membres), "femmes": femmes},
+        "membres": [
+            {
+                "ordre": m.ordre,
+                "civilite": m.civilite,
+                "nom_complet": m.nom_complet,
+                "poste": m.poste,
+            }
+            for m in membres
+        ],
+    }
+
+
+class ActualiteOut(BaseModel):
+    id: int
+    source: str
+    source_nom: str
+    titre: str | None
+    url: str
+    date_publication: date | None
+    resume: str | None
+    type_doc: str
+
+
+@router.get("/actualites", response_model=list[ActualiteOut])
+def list_actualites(
+    db: Session = Depends(get_db),
+    source: str | None = Query(None, description="Slug de la source (lefaso, aib, presidence…)"),
+    page: int = Query(1, ge=1),
+    par_page: int = Query(20, ge=1, le=100),
+):
+    """Fil d'actualités agrégé : médias burkinabè (RSS) et communiqués officiels."""
+    stmt = (
+        select(Document)
+        .join(Source)
+        .where(Document.type_doc.in_(("article_presse", "communique")))
+    )
+    if source:
+        stmt = stmt.where(Source.slug == source)
+    stmt = (
+        stmt.order_by(Document.date_publication.desc().nulls_last(), Document.id.desc())
+        .offset((page - 1) * par_page)
+        .limit(par_page)
+    )
+    resultats = []
+    for d in db.scalars(stmt).all():
+        resume = (d.meta or {}).get("resume")
+        if resume:
+            from app.extraction.texte import html_vers_texte
+
+            resume = html_vers_texte(resume)[:280] or None
+        resultats.append(
+            ActualiteOut(
+                id=d.id,
+                source=d.source.slug,
+                source_nom=d.source.nom,
+                titre=d.titre,
+                url=d.url,
+                date_publication=d.date_publication,
+                resume=resume,
+                type_doc=d.type_doc,
+            )
+        )
+    return resultats
+
+
 class ConseilOut(BaseModel):
     id: int
     titre: str | None
@@ -254,6 +360,17 @@ def finances_stats(db: Session = Depends(get_db)) -> dict:
         )
         .order_by(BudgetExercice.exercice, BudgetExercice.id)
     ).all()
+    from app.models import DotationBudgetaire
+
+    dotations = db.execute(
+        select(
+            DotationBudgetaire.exercice,
+            DotationBudgetaire.ministere,
+            DotationBudgetaire.montant_fcfa,
+        )
+        .where(DotationBudgetaire.statut_validation == "valide")
+        .order_by(DotationBudgetaire.exercice.desc(), DotationBudgetaire.montant_fcfa.desc())
+    ).all()
 
     return {
         "totaux": {
@@ -282,6 +399,10 @@ def finances_stats(db: Session = Depends(get_db)) -> dict:
                 "depenses_fcfa": b.depenses_fcfa,
             }
             for b in budgets
+        ],
+        "dotations": [
+            {"exercice": ex, "ministere": mi, "montant_fcfa": int(m)}
+            for ex, mi, m in dotations
         ],
     }
 
