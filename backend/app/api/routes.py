@@ -221,6 +221,104 @@ def list_actualites(
     return resultats
 
 
+@router.get("/recherche")
+def recherche(
+    db: Session = Depends(get_db),
+    q: str = Query(..., min_length=2, description="Recherche globale sur tout le site"),
+) -> dict:
+    """Recherche fédérée : personnes, conseils des ministres, décisions,
+    textes juridiques et actualités — top résultats par catégorie."""
+    motif = f"%{q}%"
+
+    personnes = db.execute(
+        select(Personne.id, Personne.nom_complet, Personne.matricule)
+        .where(Personne.nom_complet.ilike(motif))
+        .order_by(Personne.nom_complet)
+        .limit(8)
+    ).all()
+
+    def _docs(types: tuple[str, ...], n: int = 8):
+        requete = func.websearch_to_tsquery("french", q)
+        return db.execute(
+            select(
+                Document.id,
+                Document.type_doc,
+                Document.titre,
+                Document.date_publication,
+                Document.url,
+                Document.meta,
+                func.ts_headline(
+                    "french",
+                    func.coalesce(Document.texte_extrait, Document.titre, ""),
+                    requete,
+                    "MaxWords=28, MinWords=16, MaxFragments=1",
+                ).label("extrait"),
+            )
+            .where(
+                Document.type_doc.in_(types),
+                text("document.tsv @@ websearch_to_tsquery('french', :q)"),
+            )
+            .order_by(
+                text("ts_rank(document.tsv, websearch_to_tsquery('french', :q)) desc"),
+                Document.date_publication.desc().nulls_last(),
+            )
+            .limit(n)
+            .params(q=q)
+        ).all()
+
+    conseils = _docs(("cr_conseil",))
+    textes = _docs(TYPES_TEXTES)
+    actualites = _docs(("article_presse", "communique"))
+
+    decisions = db.execute(
+        select(Decision.id, Decision.objet, Decision.ministere, Decision.document_id, Document.date_publication)
+        .join(Document)
+        .where(
+            Decision.statut_validation == "valide",
+            Decision.objet.ilike(motif) | Decision.ministere.ilike(motif),
+        )
+        .order_by(Document.date_publication.desc().nulls_last())
+        .limit(8)
+    ).all()
+
+    return {
+        "q": q,
+        "personnes": [
+            {"id": p.id, "nom_complet": p.nom_complet, "matricule": p.matricule} for p in personnes
+        ],
+        "conseils": [
+            {"id": d.id, "titre": d.titre, "date": d.date_publication, "extrait": d.extrait}
+            for d in conseils
+        ],
+        "decisions": [
+            {
+                "id": d.id,
+                "objet": d.objet,
+                "ministere": d.ministere,
+                "document_id": d.document_id,
+                "date": d.date_publication,
+            }
+            for d in decisions
+        ],
+        "textes": [
+            {
+                "id": d.id,
+                "type_doc": d.type_doc,
+                "titre": d.titre,
+                "reference": (d.meta or {}).get("reference"),
+                "date": d.date_publication,
+                "url_pdf": d.url,
+                "extrait": d.extrait,
+            }
+            for d in textes
+        ],
+        "actualites": [
+            {"id": d.id, "titre": d.titre, "date": d.date_publication, "url": d.url, "extrait": d.extrait}
+            for d in actualites
+        ],
+    }
+
+
 class ConseilOut(BaseModel):
     id: int
     titre: str | None

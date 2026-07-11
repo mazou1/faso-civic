@@ -1,3 +1,18 @@
+<script setup>
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
+const q = ref("");
+
+function chercher() {
+  if (q.value.trim().length >= 2) {
+    router.push({ path: "/recherche", query: { q: q.value.trim() } });
+    q.value = "";
+  }
+}
+</script>
+
 <template>
   <header class="entete">
     <div class="entete-inner">
@@ -13,6 +28,14 @@
         <router-link to="/annuaire">Annuaire de l'État</router-link>
         <a href="/plan-relance/">Plan de relance</a>
       </nav>
+      <input
+        v-model="q"
+        class="recherche-globale"
+        type="search"
+        placeholder="Rechercher…"
+        aria-label="Recherche globale"
+        @keyup.enter="chercher"
+      />
     </div>
   </header>
   <main>
