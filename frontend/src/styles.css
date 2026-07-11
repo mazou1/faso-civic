@@ -75,6 +75,11 @@ input[type="search"]:focus, select:focus { outline: 2px solid var(--accent); out
 .liste { display: flex; flex-direction: column; gap: 12px; }
 .item { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; }
 .item .meta { color: var(--text-muted); font-size: 0.82rem; display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+a.item-lien { color: inherit; display: block; }
+a.item-lien:hover { text-decoration: none; border-color: var(--accent); }
+.item h2 { margin-top: 2px; }
+.item .detail ul, .item .detail ol { padding-left: 20px; margin: 8px 0; }
+.item .detail p { margin: 8px 0; }
 .badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600;
   background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
 .item .titre { font-weight: 600; }

@@ -100,6 +100,125 @@ def stats(db: Session = Depends(get_db)) -> dict:
     }
 
 
+class ConseilOut(BaseModel):
+    id: int
+    titre: str | None
+    date_conseil: date | None
+    url: str
+    decisions: int
+    nominations: int
+    engagements: int
+
+
+@router.get("/conseils", response_model=list[ConseilOut])
+def list_conseils(
+    db: Session = Depends(get_db),
+    page: int = Query(1, ge=1),
+    par_page: int = Query(20, ge=1, le=100),
+):
+    """Comptes rendus du Conseil des ministres, avec le volume de contenus validés extraits."""
+    n_dec = (
+        select(Decision.document_id, func.count().label("n"))
+        .where(Decision.statut_validation == "valide")
+        .group_by(Decision.document_id)
+        .subquery()
+    )
+    n_nom = (
+        select(Nomination.document_id, func.count().label("n"))
+        .where(Nomination.statut_validation == "valide")
+        .group_by(Nomination.document_id)
+        .subquery()
+    )
+    n_eng = (
+        select(EngagementFinancier.document_id, func.count().label("n"))
+        .where(EngagementFinancier.statut_validation == "valide")
+        .group_by(EngagementFinancier.document_id)
+        .subquery()
+    )
+    lignes = db.execute(
+        select(Document, n_dec.c.n, n_nom.c.n, n_eng.c.n)
+        .outerjoin(n_dec, n_dec.c.document_id == Document.id)
+        .outerjoin(n_nom, n_nom.c.document_id == Document.id)
+        .outerjoin(n_eng, n_eng.c.document_id == Document.id)
+        .where(
+            Document.type_doc == "cr_conseil",
+            # une entrée par conseil : on écarte les coquilles sans contenu extrait
+            (n_dec.c.n.is_not(None)) | (n_nom.c.n.is_not(None)) | (n_eng.c.n.is_not(None)),
+        )
+        .order_by(Document.date_publication.desc().nulls_last(), Document.id.desc())
+        .offset((page - 1) * par_page)
+        .limit(par_page)
+    ).all()
+    return [
+        ConseilOut(
+            id=d.id,
+            titre=d.titre,
+            date_conseil=d.date_publication,
+            url=d.url,
+            decisions=int(nd or 0),
+            nominations=int(nn or 0),
+            engagements=int(ne or 0),
+        )
+        for d, nd, nn, ne in lignes
+    ]
+
+
+@router.get("/conseils/{doc_id}")
+def get_conseil(doc_id: int, db: Session = Depends(get_db)) -> dict:
+    """Un conseil des ministres et tout son contenu validé, traçable."""
+    d = db.get(Document, doc_id)
+    if d is None or d.type_doc != "cr_conseil":
+        raise HTTPException(404, "Compte rendu introuvable")
+    decisions = db.scalars(
+        select(Decision)
+        .where(Decision.document_id == doc_id, Decision.statut_validation == "valide")
+        .order_by(Decision.id)
+    ).all()
+    nominations = db.scalars(
+        select(Nomination)
+        .where(Nomination.document_id == doc_id, Nomination.statut_validation == "valide")
+        .order_by(Nomination.id)
+    ).all()
+    engagements = db.scalars(
+        select(EngagementFinancier)
+        .where(
+            EngagementFinancier.document_id == doc_id,
+            EngagementFinancier.statut_validation == "valide",
+        )
+        .order_by(EngagementFinancier.montant_fcfa.desc().nulls_last())
+    ).all()
+    return {
+        "id": d.id,
+        "titre": d.titre,
+        "date_conseil": d.date_publication,
+        "url": d.url,
+        "decisions": [
+            {"id": x.id, "ministere": x.ministere, "type": x.type, "objet": x.objet}
+            for x in decisions
+        ],
+        "nominations": [
+            {
+                "id": x.id,
+                "personne": x.personne.nom_complet,
+                "poste": x.poste,
+                "structure": str(x.structure) if x.structure else None,
+                "type": x.type,
+            }
+            for x in nominations
+        ],
+        "engagements": [
+            {
+                "id": x.id,
+                "type": x.type,
+                "objet": x.objet,
+                "beneficiaire": x.beneficiaire,
+                "montant_fcfa": x.montant_fcfa,
+            }
+            for x in engagements
+        ],
+    }
+
+
 @router.get("/finances/stats")
 def finances_stats(db: Session = Depends(get_db)) -> dict:
     """Agrégats financiers — engagements et budgets validés uniquement."""
