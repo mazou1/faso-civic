@@ -1,24 +1,43 @@
 <template>
-  <p style="margin: 0 0 10px"><router-link to="/dossiers">← Tous les dossiers</router-link></p>
+  <!-- plein écran sous l'en-tête : un seul défilement, celui du dossier -->
   <iframe
     class="cadre-dossier"
+    :style="{ top: hautPx, height: hauteur }"
     src="/plan-relance/"
     title="Plan de relance — PND R.E.L.A.N.C.E. 2026-2030"
-    loading="eager"
   ></iframe>
 </template>
 
+<script setup>
+import { onBeforeUnmount, onMounted, ref } from "vue";
+
+const hautPx = ref("0px");
+const hauteur = ref("100dvh");
+
+function mesurer() {
+  const entete = document.querySelector(".entete");
+  const haut = entete ? Math.round(entete.getBoundingClientRect().height) : 0;
+  // un iframe est un élément remplacé : top+bottom ne l'étirent pas, la hauteur
+  // doit être explicite ; sur mobile on réserve la barre de navigation basse
+  const bas = window.innerWidth <= 768 ? "54px + env(safe-area-inset-bottom)" : "0px";
+  hautPx.value = `${haut}px`;
+  hauteur.value = `calc(100dvh - ${haut}px - (${bas}))`;
+}
+
+onMounted(() => {
+  mesurer();
+  window.addEventListener("resize", mesurer);
+});
+onBeforeUnmount(() => window.removeEventListener("resize", mesurer));
+</script>
+
 <style scoped>
 .cadre-dossier {
+  position: fixed;
+  left: 0;
   width: 100%;
-  height: calc(100dvh - 215px);
-  min-height: 540px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: #0b0e14; /* fond du dossier — évite un flash blanc au chargement */
-}
-@media (max-width: 768px) {
-  /* barre de navigation basse : on lui laisse la place */
-  .cadre-dossier { height: calc(100dvh - 250px); }
+  border: 0;
+  background: #0b0e14; /* fond du dossier — pas de flash blanc */
+  z-index: 10; /* sous l'en-tête (60) et la nav mobile (70) */
 }
 </style>
