@@ -1,9 +1,11 @@
 <script setup>
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 const router = useRouter();
 const route = useRoute();
+// routes en immersion totale : aucun habillage du site (dossiers plein écran)
+const immersif = computed(() => route.name === "dossier-plan-relance");
 const q = ref("");
 const menuOuvert = ref(false);
 const theme = ref(document.documentElement.dataset.theme || "");
@@ -41,7 +43,7 @@ const LIENS = [
 </script>
 
 <template>
-  <header class="entete">
+  <header v-if="!immersif" class="entete">
     <div class="entete-inner">
       <router-link to="/" class="marque">Faso<span>Civic</span></router-link>
       <nav class="nav">
@@ -79,7 +81,7 @@ const LIENS = [
     </div>
   </main>
 
-  <footer class="pied">
+  <footer v-if="!immersif" class="pied">
     <div class="conteneur">
       <span>Plateforme citoyenne indépendante — données issues des sources officielles, chaque entrée liée à son document d'origine.</span>
       <router-link to="/glossaire">Glossaire</router-link>
@@ -88,7 +90,7 @@ const LIENS = [
     </div>
   </footer>
 
-  <nav class="nav-mobile">
+  <nav v-if="!immersif" class="nav-mobile">
     <router-link to="/"><span class="icone">🏠</span><span>Accueil</span></router-link>
     <router-link to="/actualites"><span class="icone">📰</span><span>Actus</span></router-link>
     <router-link to="/conseils"><span class="icone">🏛️</span><span>Conseil</span></router-link>
