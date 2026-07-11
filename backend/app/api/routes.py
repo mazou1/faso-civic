@@ -742,26 +742,37 @@ def list_sources(db: Session = Depends(get_db)):
 class DocumentOut(BaseModel):
     id: int
     source: str
+    source_nom: str | None = None
     url: str
     titre: str | None
     type_doc: str
     date_publication: date | None
     date_collecte: datetime
+    pdf: bool = False
 
     @classmethod
     def from_row(cls, d: Document) -> "DocumentOut":
         return cls(
             id=d.id,
             source=d.source.slug,
+            source_nom=d.source.nom,
             url=d.url,
             titre=d.titre,
             type_doc=d.type_doc,
             date_publication=d.date_publication,
             date_collecte=d.date_collecte,
+            pdf=bool(d.fichier and d.mime == "application/pdf"),
         )
 
 
-@router.get("/documents", response_model=list[DocumentOut])
+class DocumentsPage(BaseModel):
+    total: int
+    documents: list[DocumentOut]
+    types: list[dict]
+    sources: list[dict]
+
+
+@router.get("/documents", response_model=DocumentsPage)
 def list_documents(
     db: Session = Depends(get_db),
     source: str | None = None,
@@ -770,19 +781,46 @@ def list_documents(
     page: int = Query(1, ge=1),
     par_page: int = Query(20, ge=1, le=100),
 ):
-    stmt = select(Document).join(Source)
-    if source:
-        stmt = stmt.where(Source.slug == source)
-    if type_doc:
-        stmt = stmt.where(Document.type_doc == type_doc)
-    if q:
-        stmt = stmt.where(text("document.tsv @@ websearch_to_tsquery('french', :q)")).params(q=q)
-    stmt = (
-        stmt.order_by(Document.date_publication.desc().nulls_last(), Document.id.desc())
+    """Bibliothèque de tous les documents archivés, avec facettes types/sources."""
+
+    def _filtre(stmt, avec_source=True, avec_type=True):
+        if source and avec_source:
+            stmt = stmt.where(Source.slug == source)
+        if type_doc and avec_type:
+            stmt = stmt.where(Document.type_doc == type_doc)
+        if q:
+            stmt = stmt.where(
+                text("document.tsv @@ websearch_to_tsquery('french', :q)")
+            ).params(q=q)
+        return stmt
+
+    base = _filtre(select(Document).join(Source))
+    total = db.scalar(select(func.count()).select_from(base.subquery()))
+    docs = db.scalars(
+        base.order_by(Document.date_publication.desc().nulls_last(), Document.id.desc())
         .offset((page - 1) * par_page)
         .limit(par_page)
+    ).all()
+
+    # facettes : chaque dimension est comptée sous les AUTRES filtres actifs
+    types = db.execute(
+        _filtre(
+            select(Document.type_doc, func.count()).join(Source), avec_type=False
+        ).group_by(Document.type_doc).order_by(func.count().desc())
+    ).all()
+    sources = db.execute(
+        _filtre(
+            select(Source.slug, Source.nom, func.count()).join_from(Document, Source),
+            avec_source=False,
+        ).group_by(Source.slug, Source.nom).order_by(func.count().desc())
+    ).all()
+
+    return DocumentsPage(
+        total=int(total or 0),
+        documents=[DocumentOut.from_row(d) for d in docs],
+        types=[{"type_doc": t, "n": int(n)} for t, n in types],
+        sources=[{"slug": s, "nom": nom, "n": int(n)} for s, nom, n in sources],
     )
-    return [DocumentOut.from_row(d) for d in db.scalars(stmt).all()]
 
 
 class DocumentDetail(DocumentOut):
