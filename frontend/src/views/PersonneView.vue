@@ -10,6 +10,9 @@
           <span class="badge" :class="{ actif: fiche.en_fonction }">
             {{ fiche.en_fonction ? "● En fonction" : "Plus en fonction" }}
           </span>
+          <span class="badge" v-if="fiche.matricule" title="Matricule de la fonction publique — identifie la personne dans les comptes rendus">
+            Mle {{ fiche.matricule }}
+          </span>
         </div>
         <div class="fonction-actuelle" v-if="actuelle">
           {{ actuelle.poste }}<template v-if="actuelle.structure"> — {{ actuelle.structure }}</template>
@@ -18,10 +21,18 @@
       </div>
     </header>
 
+    <p class="note-homonymes" v-if="fiche.homonymes.length">
+      {{ fiche.homonymes.length }} autre{{ fiche.homonymes.length > 1 ? "s" : "" }} personne{{ fiche.homonymes.length > 1 ? "s" : "" }}
+      porte{{ fiche.homonymes.length > 1 ? "nt" : "" }} ce nom (distinguées par matricule) :
+      <template v-for="(h, i) in fiche.homonymes" :key="h.id">
+        <router-link :to="`/personnes/${h.id}`">{{ h.matricule ? `Mle ${h.matricule}` : "sans matricule" }}</router-link><template v-if="i < fiche.homonymes.length - 1"> · </template>
+      </template>
+    </p>
+
     <h2 class="titre-section">Historique des fonctions <span class="compte">({{ fiche.fonctions.length }})</span></h2>
-    <p class="note-homonymes" v-if="fiche.fonctions.length > 4">
-      Les fonctions sont regroupées par nom tel qu'il figure dans les comptes rendus officiels —
-      des homonymes peuvent être réunis sur une même fiche.
+    <p class="note-homonymes" v-if="fiche.homonymes.length || (!fiche.matricule && fiche.fonctions.length > 4)">
+      Les fonctions sont rattachées par matricule quand le compte rendu le cite ; celles qui ne le
+      citent pas restent sur cette fiche et peuvent concerner un homonyme.
     </p>
     <div class="chronologie">
       <article v-for="(f, i) in fiche.fonctions" :key="i" class="etape" :class="{ encours: !f.date_fin }">
@@ -100,7 +111,7 @@ onMounted(async () => {
 .titre-section { margin-top: 28px; }
 .titre-section .compte { color: var(--text-muted); font-weight: 400; }
 
-.note-homonymes { color: var(--text-muted); font-size: 0.85rem; margin: -6px 0 10px; }
+.note-homonymes { color: var(--text-muted); font-size: 0.85rem; margin: 10px 0; }
 
 .chronologie { display: flex; flex-direction: column; }
 .etape { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }

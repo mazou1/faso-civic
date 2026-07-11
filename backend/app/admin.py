@@ -286,8 +286,8 @@ class MembreGouvernementAdmin(ValidationActionsMixin, ModelView, model=MembreGou
 
 
 class PersonneAdmin(ModelView, model=Personne):
-    column_list = [Personne.id, Personne.nom_complet, Personne.nom_normalise]
-    column_searchable_list = [Personne.nom_complet]
+    column_list = [Personne.id, Personne.nom_complet, Personne.matricule, Personne.nom_normalise]
+    column_searchable_list = [Personne.nom_complet, Personne.matricule]
     icon = "fa-solid fa-user"
 
 

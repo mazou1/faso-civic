@@ -513,6 +513,7 @@ class MandatOut(BaseModel):
     id: int
     personne_id: int
     personne: str
+    matricule: str | None
     poste: str
     structure: str | None
     date_debut: date | None
@@ -559,6 +560,7 @@ def annuaire(
                 id=m.id,
                 personne_id=m.personne_id,
                 personne=m.personne.nom_complet,
+                matricule=m.personne.matricule,
                 poste=m.poste,
                 structure=str(m.structure) if m.structure else None,
                 date_debut=m.date_debut,
@@ -572,8 +574,10 @@ def annuaire(
 class FichePersonne(BaseModel):
     id: int
     nom_complet: str
+    matricule: str | None
     en_fonction: bool
     fonctions: list[dict]
+    homonymes: list[dict]
 
 
 @router.get("/personnes/{personne_id}", response_model=FichePersonne)
@@ -583,6 +587,14 @@ def fiche_personne(personne_id: int, db: Session = Depends(get_db)):
     p = db.get(Personne, personne_id)
     if p is None:
         raise HTTPException(404, "Personne introuvable")
+    homonymes = [
+        {"id": h.id, "matricule": h.matricule}
+        for h in db.scalars(
+            select(Personne).where(
+                Personne.nom_normalise == p.nom_normalise, Personne.id != p.id
+            )
+        ).all()
+    ]
     mandats = db.scalars(
         select(Mandat)
         .where(Mandat.personne_id == personne_id)
@@ -606,8 +618,10 @@ def fiche_personne(personne_id: int, db: Session = Depends(get_db)):
     return FichePersonne(
         id=p.id,
         nom_complet=p.nom_complet,
+        matricule=p.matricule,
         en_fonction=any(m.date_fin is None for m in mandats),
         fonctions=fonctions,
+        homonymes=homonymes,
     )
 
 

@@ -87,6 +87,9 @@ class Personne(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     nom_complet: Mapped[str] = mapped_column(String(300))
     nom_normalise: Mapped[str] = mapped_column(String(300), index=True)
+    # matricule de la fonction publique (« Mle 39 652 W ») — identifiant fort
+    # pour distinguer les homonymes ; plusieurs Personne peuvent partager un nom
+    matricule: Mapped[str | None] = mapped_column(String(30), index=True)
     notes: Mapped[str | None] = mapped_column(Text)
 
     def __str__(self) -> str:
@@ -129,6 +132,7 @@ class Nomination(Base):
     poste: Mapped[str] = mapped_column(String(500))
     date_effet: Mapped[date | None] = mapped_column(Date)
     type: Mapped[str] = mapped_column(String(20), default="nomination")  # nomination | fin_fonction
+    matricule: Mapped[str | None] = mapped_column(String(30))  # relevé dans le texte du CR
     score_confiance: Mapped[float | None] = mapped_column(Float)
     # a_valider | valide | rejete — l'extraction automatique ne publie jamais seule
     statut_validation: Mapped[str] = mapped_column(String(20), default="a_valider", index=True)

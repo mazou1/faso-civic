@@ -31,6 +31,7 @@
         <div class="entete-mandat">
           <router-link class="nom" :to="`/personnes/${m.personne_id}`">{{ m.personne }}</router-link>
           <span class="badge">{{ m.date_fin ? "Terminé" : "En cours" }}</span>
+          <span class="matricule" v-if="m.matricule">Mle {{ m.matricule }}</span>
         </div>
         <div class="poste">{{ m.poste }}<template v-if="m.structure"> — {{ m.structure }}</template></div>
         <div class="dates">
@@ -125,6 +126,7 @@ onMounted(recharger);
 .entete-mandat { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .entete-mandat .nom { font-weight: 700; color: inherit; text-decoration: none; }
 .entete-mandat .nom:hover { color: var(--accent); }
+.entete-mandat .matricule { color: var(--text-muted); font-size: 0.78rem; }
 .poste { color: var(--text-secondary); font-size: 0.92rem; margin-top: 2px; }
 .dates { color: var(--text-muted); font-size: 0.82rem; margin-top: 6px; }
 </style>
