@@ -1,9 +1,9 @@
 <template>
   <h1>Le Gouvernement</h1>
   <p class="sous-titre" v-if="data">
-    Composition officielle issue du
-    <a :href="data.decret.url" target="_blank" rel="noopener">décret portant composition du Gouvernement</a>
-    <template v-if="data.decret.date"> du {{ formatDate(data.decret.date) }}</template>.
+    Composition officielle publiée par la
+    <a :href="data.source.url" target="_blank" rel="noopener">Présidence du Faso</a>
+    <template v-if="data.source.date"> (mise à jour du {{ formatDate(data.source.date) }})</template>.
   </p>
 
   <div v-if="data" class="grille-tuiles">
@@ -23,7 +23,8 @@
 
   <div v-if="data" class="grille-membres">
     <article v-for="m in data.membres" :key="m.ordre" class="carte membre" :class="{ pm: m.ordre === 0 }">
-      <div class="avatar">{{ initiales(m.nom_complet) }}</div>
+      <img v-if="m.photo_url" class="avatar photo" :src="m.photo_url" :alt="m.nom_complet" loading="lazy" />
+      <div v-else class="avatar">{{ initiales(m.nom_complet) }}</div>
       <div>
         <div class="titre">{{ m.nom_complet }}</div>
         <div class="detail">{{ m.civilite && !civil(m.civilite) ? m.civilite + " — " : "" }}{{ m.poste }}</div>
@@ -76,4 +77,6 @@ onMounted(async () => {
   background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--accent); font-weight: 700;
 }
+.avatar.photo { object-fit: cover; object-position: top; }
+.membre.pm .avatar { width: 64px; height: 64px; }
 </style>

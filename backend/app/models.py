@@ -213,6 +213,8 @@ class MembreGouvernement(Base):
     civilite: Mapped[str | None] = mapped_column(String(100))  # Monsieur, Madame, grade…
     nom_complet: Mapped[str] = mapped_column(String(300))
     poste: Mapped[str] = mapped_column(String(500))
+    photo_url: Mapped[str | None] = mapped_column(String(500))  # portrait officiel (Présidence)
+    genre: Mapped[str | None] = mapped_column(String(1))  # F/M — la civilité (grade) ne suffit pas
     actif: Mapped[bool] = mapped_column(Boolean, default=True)
     score_confiance: Mapped[float | None] = mapped_column(Float)
     statut_validation: Mapped[str] = mapped_column(String(20), default="a_valider", index=True)

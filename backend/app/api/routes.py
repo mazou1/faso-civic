@@ -133,9 +133,9 @@ def gouvernement(db: Session = Depends(get_db)) -> dict:
         .order_by(MembreGouvernement.ordre)
     ).all()
     doc = membres[0].document if membres else None
-    femmes = sum(1 for m in membres if (m.civilite or "").strip().lower() == "madame")
+    femmes = sum(1 for m in membres if m.genre == "F")
     return {
-        "decret": {
+        "source": {
             "titre": doc.titre if doc else None,
             "date": doc.date_publication if doc else None,
             "url": doc.url if doc else None,
@@ -147,6 +147,7 @@ def gouvernement(db: Session = Depends(get_db)) -> dict:
                 "civilite": m.civilite,
                 "nom_complet": m.nom_complet,
                 "poste": m.poste,
+                "photo_url": m.photo_url,
             }
             for m in membres
         ],
