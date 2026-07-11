@@ -8,6 +8,11 @@
       name="description"
       content="Plateforme citoyenne indépendante : décisions du Conseil des ministres, nominations et annuaire de l'État du Burkina Faso, liés à leurs sources officielles."
     />
+    <script>
+      // applique le thème choisi avant le premier rendu (évite le flash)
+      const t = localStorage.getItem("theme");
+      if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+    </script>
   </head>
   <body>
     <div id="app"></div>
