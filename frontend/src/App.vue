@@ -27,7 +27,7 @@ function chercher() {
         <router-link to="/finances">Finances</router-link>
         <router-link to="/annuaire">Annuaire de l'État</router-link>
         <router-link to="/documents">Documents</router-link>
-        <a href="/plan-relance/">Plan de relance</a>
+        <router-link to="/dossiers">Dossiers</router-link>
       </nav>
       <input
         v-model="q"
@@ -47,6 +47,7 @@ function chercher() {
   <footer class="pied">
     <div class="conteneur">
       <span>Plateforme citoyenne indépendante — données issues des sources officielles, chaque entrée liée à son document d'origine.</span>
+      <router-link to="/glossaire">Glossaire</router-link>
       <router-link to="/a-propos">À propos & méthodologie</router-link>
       <a href="/api/docs" target="_blank" rel="noopener">API ouverte</a>
     </div>
