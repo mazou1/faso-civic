@@ -26,9 +26,10 @@ PRIORITE = case(
     (Document.type_doc == "constitution", 0),
     (Document.type_doc == "charte", 1),
     (Document.type_doc == "loi", 2),
-    else_=3,
+    (Document.type_doc == "ordonnance", 3),
+    else_=4,  # décrets, arrêtés… — le gros volume, en dernier
 )
-TYPES_CIBLES = ("constitution", "charte", "loi")
+TYPES_CIBLES = ("constitution", "charte", "loi", "ordonnance", "decret", "arrete", "texte_juridique")
 
 
 def main() -> int:

@@ -108,10 +108,12 @@ const titreCourt = computed(() =>
   ),
 );
 
+// blocs séparés par ligne vide ; les \n simples (autour des passages en gras
+// dans le HTML source) sont des coupures d'affichage, pas des paragraphes
 const paragraphes = computed(() =>
   (conseil.value?.texte || "")
-    .split(/\n+/)
-    .map((p) => p.trim())
+    .split(/\n{2,}/)
+    .map((p) => p.replace(/\s*\n\s*/g, " ").trim())
     .filter(Boolean),
 );
 

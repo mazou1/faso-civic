@@ -5,6 +5,40 @@
     extraites des comptes rendus publics et reliées à leurs sources.
   </p>
 
+  <div class="grille-une" v-if="dernierConseil || actualites.length">
+    <router-link v-if="dernierConseil" :to="`/conseils/${dernierConseil.id}`" class="carte-cm">
+      <div class="bandeau">
+        <div class="sur-titre">Dernier Conseil des ministres</div>
+        <div class="grande-date" v-if="dernierConseil.date_conseil">
+          <span class="jour">{{ jour(dernierConseil.date_conseil) }}</span>
+          <span class="mois">{{ moisAnnee(dernierConseil.date_conseil) }}</span>
+        </div>
+      </div>
+      <div class="corps">
+        <div class="titre-carte">
+          {{ dernierConseil.decisions }} décision{{ dernierConseil.decisions > 1 ? "s" : "" }} ·
+          {{ dernierConseil.nominations }} nomination{{ dernierConseil.nominations > 1 ? "s" : "" }}
+          <template v-if="dernierConseil.engagements">
+            · {{ dernierConseil.engagements }} engagement{{ dernierConseil.engagements > 1 ? "s" : "" }}
+          </template>
+        </div>
+        <div class="detail">Lire l'essentiel et le compte rendu intégral →</div>
+      </div>
+    </router-link>
+
+    <section class="carte actus" v-if="actualites.length">
+      <h2>Dernières actualités</h2>
+      <article v-for="a in actualites" :key="a.id" class="actu">
+        <div class="meta">
+          <span class="badge">{{ a.source_nom }}</span>
+          <span v-if="a.date_publication">{{ jour(a.date_publication) }} {{ moisAnnee(a.date_publication) }}</span>
+        </div>
+        <a :href="a.url" target="_blank" rel="noopener" class="titre-actu">{{ a.titre }}</a>
+      </article>
+      <router-link to="/actualites" class="tout">Toutes les actualités →</router-link>
+    </section>
+  </div>
+
   <div v-if="stats" class="grille-tuiles">
     <div class="carte tuile" v-for="t in tuiles" :key="t.libelle">
       <div class="valeur">{{ t.valeur.toLocaleString("fr-FR") }}</div>
@@ -44,10 +78,19 @@ const LIBELLES_TYPE = {
 };
 
 const stats = ref(null);
+const dernierConseil = ref(null);
+const actualites = ref([]);
 const elAnnees = ref(null);
 const elTypes = ref(null);
 const elStructures = ref(null);
 const nettoyages = [];
+
+function jour(d) {
+  return new Date(d).toLocaleDateString("fr-FR", { day: "numeric" });
+}
+function moisAnnee(d) {
+  return new Date(d).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+}
 
 const tuiles = computed(() => {
   const t = stats.value?.totaux ?? {};
@@ -84,9 +127,15 @@ function barreH(c, categories, valeurs) {
 }
 
 onMounted(async () => {
-  stats.value = await apiGet("/stats");
+  const [s, conseils, actus] = await Promise.all([
+    apiGet("/stats"),
+    apiGet("/conseils", { par_page: 1 }),
+    apiGet("/actualites", { par_page: 3 }),
+  ]);
+  stats.value = s;
+  dernierConseil.value = conseils.conseils[0] ?? null;
+  actualites.value = actus;
   const c = roles();
-  const s = stats.value;
 
   nettoyages.push(
     monter(elAnnees.value, {
@@ -138,3 +187,37 @@ onMounted(async () => {
 
 onBeforeUnmount(() => nettoyages.forEach((fn) => fn()));
 </script>
+
+<style scoped>
+.grille-une { display: grid; grid-template-columns: 1fr 1.4fr; gap: 14px; margin-bottom: 18px; }
+@media (max-width: 760px) { .grille-une { grid-template-columns: 1fr; } }
+
+.carte-cm {
+  display: block; border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+  background: var(--surface-1); text-decoration: none; color: inherit;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.carte-cm:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08); }
+.bandeau {
+  padding: 18px 18px 14px; color: #fff; min-height: 96px;
+  background:
+    radial-gradient(120% 160% at 100% 0%, rgba(255, 255, 255, 0.16), transparent 55%),
+    linear-gradient(135deg, var(--series-1-fonce), var(--series-1));
+  border-bottom: 3px solid;
+  border-image: linear-gradient(90deg, #ce1126 50%, #009e49 50%) 1;
+}
+.sur-titre { font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.85; }
+.grande-date { display: flex; align-items: baseline; gap: 8px; margin-top: 8px; }
+.grande-date .jour { font-size: 2.1rem; font-weight: 800; line-height: 1; }
+.grande-date .mois { font-size: 1.02rem; font-weight: 600; text-transform: capitalize; }
+.corps { padding: 12px 18px 14px; }
+.titre-carte { font-weight: 700; }
+.corps .detail { color: var(--text-secondary); font-size: 0.88rem; margin-top: 4px; }
+
+.actus h2 { margin: 0 0 10px; }
+.actu { padding: 8px 0; border-top: 1px solid var(--border); }
+.actu .meta { color: var(--text-muted); font-size: 0.8rem; display: flex; gap: 8px; margin-bottom: 2px; }
+.titre-actu { font-weight: 600; text-decoration: none; color: inherit; }
+.titre-actu:hover { color: var(--accent); }
+.tout { display: inline-block; margin-top: 10px; font-size: 0.9rem; }
+</style>

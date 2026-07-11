@@ -234,6 +234,7 @@ class Depute(Base):
     nom_complet: Mapped[str] = mapped_column(String(300), unique=True)
     legislature: Mapped[str | None] = mapped_column(String(50))
     photo_url: Mapped[str | None] = mapped_column(String(500))
+    role: Mapped[str | None] = mapped_column(String(200))  # Président de l'ALT, etc. (page bureau)
     actif: Mapped[bool] = mapped_column(Boolean, default=True)
 
     def __str__(self) -> str:

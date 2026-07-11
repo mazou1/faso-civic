@@ -108,13 +108,22 @@ def assemblee(db: Session = Depends(get_db)) -> dict:
     deputes = db.scalars(
         select(Depute).where(Depute.actif.is_(True)).order_by(Depute.nom_complet)
     ).all()
+    president = next((d for d in deputes if d.role), None)
     return {
         "stats": {
             "deputes": len(deputes),
             "legislature": deputes[0].legislature if deputes else None,
         },
+        "president": {
+            "nom_complet": president.nom_complet,
+            "role": president.role,
+            "photo_url": president.photo_url,
+        }
+        if president
+        else None,
         "deputes": [
-            {"nom_complet": d.nom_complet, "photo_url": d.photo_url} for d in deputes
+            {"nom_complet": d.nom_complet, "photo_url": d.photo_url, "role": d.role}
+            for d in deputes
         ],
     }
 
