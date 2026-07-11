@@ -37,8 +37,8 @@ const DOSSIERS = [
       + "4 piliers, trajectoire de croissance, pauvreté par région, financement et risques — "
       + "un dossier interactif complet.",
     etiquettes: ["36 191 Mds FCFA", "4 piliers", "Interactif"],
-    lien: "/plan-relance/",
-    externe: true,
+    lien: "/dossiers/plan-relance",
+    externe: false,
     couleur: "#b8860b",
   },
   {

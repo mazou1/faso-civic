@@ -10,6 +10,7 @@ const router = createRouter({
     { path: "/recherche", name: "recherche", component: () => import("./views/RechercheView.vue") },
     { path: "/documents", name: "documents", component: () => import("./views/DocumentsView.vue") },
     { path: "/dossiers", name: "dossiers", component: () => import("./views/DossiersView.vue") },
+    { path: "/dossiers/plan-relance", name: "dossier-plan-relance", component: () => import("./views/PlanRelanceView.vue") },
     { path: "/glossaire", name: "glossaire", component: () => import("./views/GlossaireView.vue") },
     { path: "/textes", name: "textes", component: () => import("./views/TextesView.vue") },
     { path: "/finances", name: "finances", component: () => import("./views/FinancesView.vue") },

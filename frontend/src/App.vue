@@ -101,7 +101,7 @@ const LIENS = [
   <div v-if="menuOuvert" class="voile-menu" @click="menuOuvert = false">
     <nav class="feuille-menu" @click.stop>
       <router-link v-for="[chemin, libelle] in LIENS" :key="chemin" :to="chemin">{{ libelle }}</router-link>
-      <a href="/plan-relance/">Plan de relance</a>
+      <router-link to="/dossiers/plan-relance">Plan de relance</router-link>
       <router-link to="/glossaire">Glossaire</router-link>
     </nav>
   </div>
