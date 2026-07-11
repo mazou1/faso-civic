@@ -64,10 +64,15 @@ def stats(db: Session = Depends(get_db)) -> dict:
         select(Decision.type, func.count()).where(valide_d).group_by(Decision.type).order_by(func.count().desc())
     ).all()
 
+    # regroupement par structure canonique (fusion des renommages — cf. app/fusion.py)
+    from sqlalchemy.orm import aliased
+
+    canon = aliased(Structure)
     top_structures = db.execute(
-        select(func.coalesce(Structure.sigle, Structure.nom), func.count())
-        .join_from(Mandat, Structure)
-        .group_by(Structure.id)
+        select(func.coalesce(canon.sigle, canon.nom), func.count())
+        .join_from(Mandat, Structure, Mandat.structure_id == Structure.id)
+        .join(canon, canon.id == func.coalesce(Structure.canonique_id, Structure.id))
+        .group_by(canon.id)
         .order_by(func.count().desc())
         .limit(10)
     ).all()

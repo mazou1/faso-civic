@@ -102,8 +102,16 @@ class Structure(Base):
     # ministere | direction | societe_etat | etablissement_public | juridiction | autre
     type: Mapped[str] = mapped_column(String(50), default="autre")
     parent_id: Mapped[int | None] = mapped_column(ForeignKey("structure.id"))
+    # fusion des doublons/renommages : pointe vers la structure canonique
+    # (les stats regroupent par coalesce(canonique_id, id)) — cf. app/fusion.py
+    canonique_id: Mapped[int | None] = mapped_column(ForeignKey("structure.id"), index=True)
 
-    parent: Mapped[Structure | None] = relationship(remote_side=[id])
+    parent: Mapped[Structure | None] = relationship(
+        remote_side=[id], foreign_keys=[parent_id]
+    )
+    canonique: Mapped[Structure | None] = relationship(
+        remote_side=[id], foreign_keys=[canonique_id]
+    )
 
     def __str__(self) -> str:
         return self.sigle or self.nom

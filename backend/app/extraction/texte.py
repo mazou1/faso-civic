@@ -27,4 +27,5 @@ def normaliser_nom(nom: str) -> str:
     """
     nfkd = unicodedata.normalize("NFKD", nom)
     sans_accents = "".join(c for c in nfkd if not unicodedata.combining(c))
-    return re.sub(r"\s+", " ", sans_accents).strip().lower()
+    unifie = sans_accents.replace("’", "'").replace("‘", "'").replace("-", " ")
+    return re.sub(r"\s+", " ", unifie).strip().lower()

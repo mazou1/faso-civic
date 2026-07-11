@@ -226,8 +226,9 @@ class PersonneAdmin(ModelView, model=Personne):
 
 
 class StructureAdmin(ModelView, model=Structure):
-    column_list = [Structure.id, Structure.sigle, Structure.nom, Structure.type]
+    column_list = [Structure.id, Structure.sigle, Structure.nom, Structure.type, Structure.canonique]
     column_searchable_list = [Structure.nom, Structure.sigle]
+    form_columns = [Structure.nom, Structure.sigle, Structure.type, Structure.canonique]
     icon = "fa-solid fa-building-columns"
 
 
