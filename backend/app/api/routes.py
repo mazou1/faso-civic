@@ -222,9 +222,15 @@ class ConseilOut(BaseModel):
     engagements: int
 
 
-@router.get("/conseils", response_model=list[ConseilOut])
+class ConseilsPage(BaseModel):
+    total: int
+    conseils: list[ConseilOut]
+
+
+@router.get("/conseils", response_model=ConseilsPage)
 def list_conseils(
     db: Session = Depends(get_db),
+    q: str | None = Query(None, min_length=2, description="Recherche dans le titre ou le texte"),
     page: int = Query(1, ge=1),
     par_page: int = Query(20, ge=1, le=100),
 ):
@@ -247,7 +253,7 @@ def list_conseils(
         .group_by(EngagementFinancier.document_id)
         .subquery()
     )
-    lignes = db.execute(
+    base = (
         select(Document, n_dec.c.n, n_nom.c.n, n_eng.c.n)
         .outerjoin(n_dec, n_dec.c.document_id == Document.id)
         .outerjoin(n_nom, n_nom.c.document_id == Document.id)
@@ -257,22 +263,30 @@ def list_conseils(
             # une entrée par conseil : on écarte les coquilles sans contenu extrait
             (n_dec.c.n.is_not(None)) | (n_nom.c.n.is_not(None)) | (n_eng.c.n.is_not(None)),
         )
-        .order_by(Document.date_publication.desc().nulls_last(), Document.id.desc())
+    )
+    if q:
+        base = base.where(Document.titre.ilike(f"%{q}%") | Document.texte_extrait.ilike(f"%{q}%"))
+    total = db.scalar(select(func.count()).select_from(base.subquery()))
+    lignes = db.execute(
+        base.order_by(Document.date_publication.desc().nulls_last(), Document.id.desc())
         .offset((page - 1) * par_page)
         .limit(par_page)
     ).all()
-    return [
-        ConseilOut(
-            id=d.id,
-            titre=d.titre,
-            date_conseil=d.date_publication,
-            url=d.url,
-            decisions=int(nd or 0),
-            nominations=int(nn or 0),
-            engagements=int(ne or 0),
-        )
-        for d, nd, nn, ne in lignes
-    ]
+    return ConseilsPage(
+        total=int(total or 0),
+        conseils=[
+            ConseilOut(
+                id=d.id,
+                titre=d.titre,
+                date_conseil=d.date_publication,
+                url=d.url,
+                decisions=int(nd or 0),
+                nominations=int(nn or 0),
+                engagements=int(ne or 0),
+            )
+            for d, nd, nn, ne in lignes
+        ],
+    )
 
 
 @router.get("/conseils/{doc_id}")
@@ -304,6 +318,8 @@ def get_conseil(doc_id: int, db: Session = Depends(get_db)) -> dict:
         "titre": d.titre,
         "date_conseil": d.date_publication,
         "url": d.url,
+        "texte": d.texte_extrait,
+        "pdf": bool(d.fichier and d.mime == "application/pdf"),
         "decisions": [
             {"id": x.id, "ministere": x.ministere, "type": x.type, "objet": x.objet}
             for x in decisions
@@ -616,6 +632,23 @@ def get_document(doc_id: int, db: Session = Depends(get_db)):
         statut_extraction=d.statut_extraction,
         meta=d.meta,
     )
+
+
+@router.get("/documents/{doc_id}/fichier")
+def get_document_fichier(doc_id: int, db: Session = Depends(get_db)):
+    """Sert le fichier archivé d'un document (PDF officiel téléchargé à la collecte)."""
+    from fastapi.responses import FileResponse
+
+    from app.config import settings
+
+    d = db.get(Document, doc_id)
+    if d is None or not d.fichier:
+        raise HTTPException(404, "Fichier introuvable")
+    chemin = settings.data_dir / d.fichier
+    if not chemin.is_file():
+        raise HTTPException(404, "Fichier absent de l'archive")
+    nom = f"{(d.titre or 'document').strip()[:80]}.pdf" if d.mime == "application/pdf" else chemin.name
+    return FileResponse(chemin, media_type=d.mime or "application/octet-stream", filename=nom)
 
 
 TYPES_TEXTES = ("decret", "loi", "arrete", "ordonnance", "charte", "constitution", "texte_juridique")

@@ -7,8 +7,7 @@
         <router-link to="/actualites">Actualités</router-link>
         <router-link to="/gouvernement">Gouvernement</router-link>
         <router-link to="/assemblee">Assemblée</router-link>
-        <router-link to="/conseils">Conseils des ministres</router-link>
-        <router-link to="/decisions">Décisions</router-link>
+        <router-link to="/conseils">Conseil des ministres</router-link>
         <router-link to="/textes">Lois & décrets</router-link>
         <router-link to="/finances">Finances</router-link>
         <router-link to="/nominations">Nominations</router-link>

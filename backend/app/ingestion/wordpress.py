@@ -21,6 +21,10 @@ class WordPressCollector(Collector):
     api_base: str  # ex: https://gouvernement.gov.bf/wp-json/wp/v2
     categories: str | None = None  # ids de catégories WP, ex: "23"
     type_doc: str = "communique"
+
+    def type_doc_pour(self, titre: str) -> str:
+        """Type du document selon son titre — surchargé par les collecteurs."""
+        return self.type_doc
     par_page: int = 20
 
     def collect(self) -> None:
@@ -57,7 +61,7 @@ class WordPressCollector(Collector):
         fichier, digest = self.archive(html.encode(), "html")
         doc = self.upsert_document(
             url=lien,
-            type_doc=self.type_doc,
+            type_doc=self.type_doc_pour(titre),
             titre=titre or None,
             date_publication=pub,
             hash_contenu=digest,

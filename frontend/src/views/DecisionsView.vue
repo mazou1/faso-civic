@@ -1,6 +1,11 @@
 <template>
-  <h1>Décisions du Conseil des ministres</h1>
+  <h1>Conseil des ministres</h1>
   <p class="sous-titre">Chaque décision renvoie au compte rendu officiel dont elle est extraite.</p>
+
+  <nav class="onglets">
+    <router-link to="/conseils">Comptes rendus</router-link>
+    <router-link to="/conseils/decisions" class="actif">Décisions</router-link>
+  </nav>
 
   <div class="filtres">
     <input
