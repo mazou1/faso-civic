@@ -511,6 +511,7 @@ def list_engagements(
 
 class MandatOut(BaseModel):
     id: int
+    personne_id: int
     personne: str
     poste: str
     structure: str | None
@@ -556,6 +557,7 @@ def annuaire(
         resultats.append(
             MandatOut(
                 id=m.id,
+                personne_id=m.personne_id,
                 personne=m.personne.nom_complet,
                 poste=m.poste,
                 structure=str(m.structure) if m.structure else None,
@@ -565,6 +567,48 @@ def annuaire(
             )
         )
     return AnnuairePage(total=int(total or 0), mandats=resultats)
+
+
+class FichePersonne(BaseModel):
+    id: int
+    nom_complet: str
+    en_fonction: bool
+    fonctions: list[dict]
+
+
+@router.get("/personnes/{personne_id}", response_model=FichePersonne)
+def fiche_personne(personne_id: int, db: Session = Depends(get_db)):
+    """Fiche d'une personnalité publique : son parcours de fonctions, chaque
+    entrée reliée au compte rendu de nomination."""
+    p = db.get(Personne, personne_id)
+    if p is None:
+        raise HTTPException(404, "Personne introuvable")
+    mandats = db.scalars(
+        select(Mandat)
+        .where(Mandat.personne_id == personne_id)
+        .order_by(Mandat.date_fin.is_(None).desc(), Mandat.date_debut.desc().nulls_last())
+    ).all()
+    fonctions = []
+    for m in mandats:
+        nom_deb = m.nomination_debut_id and db.get(Nomination, m.nomination_debut_id)
+        doc = nom_deb.document if nom_deb else None
+        fonctions.append(
+            {
+                "poste": m.poste,
+                "structure": str(m.structure) if m.structure else None,
+                "date_debut": m.date_debut.isoformat() if m.date_debut else None,
+                "date_fin": m.date_fin.isoformat() if m.date_fin else None,
+                "source_titre": doc.titre if doc else None,
+                "source_url": doc.url if doc else None,
+                "source_id": doc.id if doc and doc.type_doc == "cr_conseil" else None,
+            }
+        )
+    return FichePersonne(
+        id=p.id,
+        nom_complet=p.nom_complet,
+        en_fonction=any(m.date_fin is None for m in mandats),
+        fonctions=fonctions,
+    )
 
 
 class SourceOut(BaseModel):
@@ -782,6 +826,7 @@ class NominationOut(BaseModel):
     document_id: int
     document_url: str
     date_conseil: date | None
+    personne_id: int
     personne: str
     poste: str
     structure: str | None
@@ -825,6 +870,7 @@ def list_nominations(
                 document_id=n.document_id,
                 document_url=n.document.url,
                 date_conseil=n.document.date_publication,
+                personne_id=n.personne_id,
                 personne=n.personne.nom_complet,
                 poste=n.poste,
                 structure=str(n.structure) if n.structure else None,

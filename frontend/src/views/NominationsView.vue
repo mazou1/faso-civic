@@ -25,7 +25,9 @@
         <span class="badge">{{ n.type === "fin_fonction" ? "Fin de fonction" : "Nomination" }}</span>
         <span v-if="n.date_conseil">Conseil du {{ formatDate(n.date_conseil) }}</span>
       </div>
-      <div class="titre">{{ n.personne }}</div>
+      <div class="titre">
+        <router-link class="lien-personne" :to="`/personnes/${n.personne_id}`">{{ n.personne }}</router-link>
+      </div>
       <div class="detail">
         {{ n.poste }}<template v-if="n.structure"> — {{ n.structure }}</template>
       </div>
@@ -87,4 +89,6 @@ onMounted(recharger);
 .entete-recherche { align-items: center; }
 .entete-recherche input { flex: 1; max-width: 420px; }
 .compteur { margin-left: auto; color: var(--text-muted); font-size: 0.88rem; }
+.lien-personne { color: inherit; text-decoration: none; }
+.lien-personne:hover { color: var(--accent); }
 </style>

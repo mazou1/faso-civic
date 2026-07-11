@@ -29,7 +29,7 @@
       <div class="avatar">{{ initiales(m.personne) }}</div>
       <div class="corps">
         <div class="entete-mandat">
-          <span class="nom">{{ m.personne }}</span>
+          <router-link class="nom" :to="`/personnes/${m.personne_id}`">{{ m.personne }}</router-link>
           <span class="badge">{{ m.date_fin ? "Terminé" : "En cours" }}</span>
         </div>
         <div class="poste">{{ m.poste }}<template v-if="m.structure"> — {{ m.structure }}</template></div>
@@ -123,7 +123,8 @@ onMounted(recharger);
 }
 .corps { min-width: 0; }
 .entete-mandat { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.entete-mandat .nom { font-weight: 700; }
+.entete-mandat .nom { font-weight: 700; color: inherit; text-decoration: none; }
+.entete-mandat .nom:hover { color: var(--accent); }
 .poste { color: var(--text-secondary); font-size: 0.92rem; margin-top: 2px; }
 .dates { color: var(--text-muted); font-size: 0.82rem; margin-top: 6px; }
 </style>
