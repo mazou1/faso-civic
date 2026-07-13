@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
@@ -1219,3 +1219,105 @@ def export_annuaire(db: Session = Depends(get_db)):
         ["id", "personne", "matricule", "poste", "structure", "date_debut", "date_fin", "statut"],
         lignes,
     )
+
+
+# ── Flux RSS ──────────────────────────────────────────────────────────────
+# Suivre les nouvelles publications dans un lecteur de flux, sans compte.
+
+@router.get("/rss/conseils.xml")
+def rss_conseils(request: Request, db: Session = Depends(get_db)):
+    from fastapi.responses import Response
+
+    from app.api.rss import flux_rss
+
+    base = str(request.base_url).rstrip("/").removesuffix("/api")
+    docs = db.scalars(
+        select(Document)
+        .where(Document.type_doc == "cr_conseil")
+        .order_by(Document.date_publication.desc().nulls_last(), Document.id.desc())
+        .limit(30)
+    ).all()
+    items = [
+        {
+            "titre": d.titre or "Conseil des ministres",
+            "lien": f"{base}/conseils/{d.id}",
+            "guid": f"conseil-{d.id}",
+            "date": d.date_publication,
+        }
+        for d in docs
+    ]
+    xml = flux_rss(
+        request,
+        titre="FasoCivic — Conseils des ministres",
+        description="Les comptes rendus du Conseil des ministres du Burkina Faso.",
+        chemin="/rss/conseils.xml",
+        items=items,
+    )
+    return Response(xml, media_type="application/rss+xml; charset=utf-8")
+
+
+@router.get("/rss/actualites.xml")
+def rss_actualites(request: Request, db: Session = Depends(get_db)):
+    from fastapi.responses import Response
+
+    from app.api.rss import flux_rss
+    from app.extraction.texte import html_vers_texte
+
+    docs = db.scalars(
+        select(Document)
+        .where(Document.type_doc.in_(("article_presse", "communique")))
+        .order_by(Document.date_publication.desc().nulls_last(), Document.id.desc())
+        .limit(40)
+    ).all()
+    items = []
+    for d in docs:
+        resume = (d.meta or {}).get("resume")
+        items.append(
+            {
+                "titre": d.titre or d.source.nom,
+                "lien": d.url,  # l'article renvoie à sa source d'origine
+                "guid": f"actu-{d.id}",
+                "description": (html_vers_texte(resume)[:280] if resume else None),
+                "date": d.date_publication,
+            }
+        )
+    xml = flux_rss(
+        request,
+        titre="FasoCivic — Actualités",
+        description="Le fil d'actualités agrégé : médias burkinabè et communiqués officiels.",
+        chemin="/rss/actualites.xml",
+        items=items,
+    )
+    return Response(xml, media_type="application/rss+xml; charset=utf-8")
+
+
+@router.get("/rss/textes.xml")
+def rss_textes(request: Request, db: Session = Depends(get_db)):
+    from fastapi.responses import Response
+
+    from app.api.rss import flux_rss
+
+    docs = db.scalars(
+        select(Document)
+        .where(Document.type_doc.in_(TYPES_TEXTES))
+        .order_by(Document.date_publication.desc().nulls_last(), Document.id.desc())
+        .limit(30)
+    ).all()
+    items = [
+        {
+            "titre": ((d.meta or {}).get("reference") or d.titre or "Texte juridique"),
+            "lien": d.url,
+            "guid": f"texte-{d.id}",
+            "description": ((d.meta or {}).get("description") or None),
+            "date": d.date_publication,
+        }
+        for d in docs
+    ]
+    xml = flux_rss(
+        request,
+        titre="FasoCivic — Lois & décrets",
+        description="Les nouveaux textes juridiques publiés (Légiburkina).",
+        chemin="/rss/textes.xml",
+        items=items,
+    )
+    return Response(xml, media_type="application/rss+xml; charset=utf-8")

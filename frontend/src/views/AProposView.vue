@@ -115,6 +115,12 @@
           Réutilisation libre en citant « FasoCivic » et la source officielle d'origine.
           Chaque fichier inclut le lien vers le document source de chaque ligne.
         </p>
+        <p><strong>Suivre par flux RSS</strong> (dans votre lecteur, sans compte) :</p>
+        <ul class="telechargements">
+          <li><a href="/api/rss/conseils.xml">Conseils des ministres</a></li>
+          <li><a href="/api/rss/actualites.xml">Actualités</a></li>
+          <li><a href="/api/rss/textes.xml">Lois &amp; décrets</a></li>
+        </ul>
       </div>
     </section>
   </div>

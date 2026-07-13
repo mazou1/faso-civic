@@ -87,6 +87,7 @@ const LIENS = [
       <router-link to="/glossaire">Glossaire</router-link>
       <router-link to="/a-propos">À propos & méthodologie</router-link>
       <a href="/api/docs" target="_blank" rel="noopener">API ouverte</a>
+      <a href="/api/rss/conseils.xml" target="_blank" rel="noopener" title="Suivre les conseils des ministres">RSS ⓘ</a>
     </div>
   </footer>
 
