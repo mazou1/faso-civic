@@ -739,6 +739,16 @@ def list_sources(db: Session = Depends(get_db)):
     return db.scalars(select(Source).order_by(Source.slug)).all()
 
 
+@router.get("/sources/etat")
+def sources_etat(db: Session = Depends(get_db)) -> dict:
+    """Fraîcheur des collectes : sources muettes (rien collecté depuis trop
+    longtemps au regard de leur cadence) et date du dernier run réussi."""
+    from app.ingestion.surveillance import etat_sources
+
+    etats = etat_sources(db)
+    return {"muettes": sum(1 for e in etats if e["muette"]), "sources": etats}
+
+
 class DocumentOut(BaseModel):
     id: int
     source: str

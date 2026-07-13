@@ -12,6 +12,7 @@ from apscheduler.triggers.cron import CronTrigger
 from app.config import settings
 from app.db import SessionLocal
 from app.ingestion.registry import active_collectors, seed_sources
+from app.ingestion.surveillance import verifier_sources_muettes
 
 logger = logging.getLogger(__name__)
 
@@ -55,8 +56,20 @@ def main() -> None:
     with SessionLocal() as db:
         seed_sources(db)
 
-    scheduler = BlockingScheduler(timezone="Africa/Ouagadougou")
+    # misfire_grace_time large : sur une machine qui se met en veille (WSL2,
+    # portable), un déclenchement dû pendant la suspension serait sinon « manqué »
+    # et sauté au réveil — d'où des sources muettes silencieuses. 6h de tolérance
+    # + coalesce : le job dû tourne une fois au réveil.
+    scheduler = BlockingScheduler(
+        timezone="Africa/Ouagadougou",
+        job_defaults={"coalesce": True, "misfire_grace_time": 6 * 3600},
+    )
     scheduler.add_job(run_medias, "interval", minutes=30, id="medias", coalesce=True)
+    scheduler.add_job(
+        verifier_sources_muettes,
+        CronTrigger(hour=7, minute=30),
+        id="alerte_sources_muettes",
+    )
     # Le Conseil des ministres se tient désormais le jeudi ; le CR est publié
     # le soir ou le lendemain — passage jeudi soir + rattrapages.
     scheduler.add_job(
@@ -84,6 +97,7 @@ def main() -> None:
     run_medias()
     run_conseil_ministres()
     run_institutionnel()
+    verifier_sources_muettes()
     scheduler.start()
 
 
