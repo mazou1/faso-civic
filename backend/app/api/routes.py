@@ -1326,3 +1326,70 @@ def rss_textes(request: Request, db: Session = Depends(get_db)):
         items=items,
     )
     return Response(xml, media_type="application/rss+xml; charset=utf-8")
+
+
+# ── Marchés publics (attributions) ────────────────────────────────────────
+class MarcheOut(BaseModel):
+    id: int
+    attributaire: str | None
+    montant_fcfa: int | None
+    autorite: str | None
+    objet: str
+    reference: str | None
+    date: date | None
+    document_id: int
+
+
+class MarchesPage(BaseModel):
+    total: int
+    montant_total_fcfa: int
+    marches: list[MarcheOut]
+
+
+@router.get("/marches", response_model=MarchesPage)
+def list_marches(
+    db: Session = Depends(get_db),
+    q: str | None = Query(None, min_length=2, description="Attributaire, autorité ou objet"),
+    tri: str = Query("montant", description="montant | date"),
+    page: int = Query(1, ge=1),
+    par_page: int = Query(20, ge=1, le=100),
+):
+    """Marchés publics attribués (Quotidien DGCMEF) — validés uniquement."""
+    from app.models import Marche
+
+    base = select(Marche).where(Marche.statut_validation == "valide")
+    if q:
+        motif = f"%{q}%"
+        base = base.where(
+            Marche.attributaire.ilike(motif)
+            | Marche.autorite.ilike(motif)
+            | Marche.objet.ilike(motif)
+        )
+    total = db.scalar(select(func.count()).select_from(base.subquery()))
+    # somme sur la même sélection filtrée (pas select_from(subquery) : la colonne
+    # de l'entité y provoquerait un produit cartésien)
+    montant_total = db.scalar(
+        base.with_only_columns(func.coalesce(func.sum(Marche.montant_fcfa), 0)).order_by(None)
+    )
+    if tri == "date":
+        base = base.order_by(Marche.date_attribution.desc().nulls_last(), Marche.id.desc())
+    else:
+        base = base.order_by(Marche.montant_fcfa.desc().nulls_last())
+    marches = db.scalars(base.offset((page - 1) * par_page).limit(par_page)).all()
+    return MarchesPage(
+        total=int(total or 0),
+        montant_total_fcfa=int(montant_total or 0),
+        marches=[
+            MarcheOut(
+                id=m.id,
+                attributaire=m.attributaire,
+                montant_fcfa=m.montant_fcfa,
+                autorite=m.autorite,
+                objet=m.objet,
+                reference=m.reference,
+                date=m.date_attribution,
+                document_id=m.document_id,
+            )
+            for m in marches
+        ],
+    )

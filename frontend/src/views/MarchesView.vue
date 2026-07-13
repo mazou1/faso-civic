@@ -1,0 +1,130 @@
+<template>
+  <h1>Marchés publics</h1>
+  <p class="sous-titre">
+    Qui décroche les marchés de l'État, pour quel montant — les attributions extraites du
+    <a href="https://www.dgcmef.gov.bf" target="_blank" rel="noopener">Quotidien des Marchés Publics</a>
+    (DGCMEF). Chaque marché renvoie au journal officiel dont il est issu.
+  </p>
+
+  <div v-if="stats" class="grille-tuiles">
+    <div class="carte tuile">
+      <div class="valeur">{{ fmtFCFA(stats.montant) }}</div>
+      <div class="libelle">total des marchés attribués</div>
+    </div>
+    <div class="carte tuile">
+      <div class="valeur">{{ stats.total.toLocaleString("fr-FR") }}</div>
+      <div class="libelle">marchés recensés</div>
+    </div>
+    <div class="carte tuile" v-if="plusGros">
+      <div class="valeur">{{ fmtFCFA(plusGros.montant_fcfa) }}</div>
+      <div class="libelle">plus gros marché ({{ plusGros.attributaire }})</div>
+    </div>
+  </div>
+
+  <div class="filtres entete-recherche">
+    <input v-model="q" type="search" placeholder="Attributaire, autorité, objet…" @input="rechercherDebounce" />
+    <select v-model="tri" @change="page = 1; recharger()">
+      <option value="montant">Par montant</option>
+      <option value="date">Par date</option>
+    </select>
+    <a class="export" href="/api/marches?tri=montant&par_page=100" title="Données via l'API">API</a>
+  </div>
+
+  <div class="liste">
+    <article v-for="m in marches" :key="m.id" class="item">
+      <div class="meta">
+        <span class="badge">Marché attribué</span>
+        <span v-if="m.date">Quotidien du {{ formatDate(m.date) }}</span>
+        <span v-if="m.autorite">{{ m.autorite }}</span>
+      </div>
+      <div class="titre">
+        {{ fmtFCFA(m.montant_fcfa) }}<template v-if="m.attributaire"> — {{ m.attributaire }}</template>
+      </div>
+      <div class="detail">{{ m.objet }}</div>
+      <div class="meta" style="margin-top: 4px">
+        <span v-if="m.reference" class="ref">{{ m.reference }}</span>
+        <a class="source" :href="`/api/documents/${m.document_id}/fichier`" target="_blank" rel="noopener">
+          Quotidien officiel (PDF) →
+        </a>
+      </div>
+    </article>
+  </div>
+
+  <p v-if="chargement" class="chargement">Chargement…</p>
+  <p v-else-if="!marches.length" class="vide">Aucun marché ne correspond à cette recherche.</p>
+
+  <div class="pagination">
+    <button :disabled="page <= 1" @click="page--; recharger()">← Précédent</button>
+    <span>Page {{ page }}<template v-if="pages"> / {{ pages }}</template></span>
+    <button :disabled="page >= pages" @click="page++; recharger()">Suivant →</button>
+  </div>
+
+  <p class="note-methode">
+    Extraction automatique des synthèses de résultats du Quotidien des Marchés Publics ;
+    en cas de doute, le journal officiel fait foi.
+  </p>
+</template>
+
+<script setup>
+import { computed, onMounted, ref } from "vue";
+import { apiGet } from "../api";
+
+const PAR_PAGE = 20;
+const marches = ref([]);
+const stats = ref(null);
+const plusGros = ref(null);
+const q = ref("");
+const tri = ref("montant");
+const page = ref(1);
+const chargement = ref(false);
+let minuterie = null;
+
+const pages = computed(() => (stats.value ? Math.ceil(stats.value.total / PAR_PAGE) : 0));
+
+function fmtFCFA(n) {
+  if (n == null) return "—";
+  if (n >= 1e9) return `${(n / 1e9).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} Mds FCFA`;
+  if (n >= 1e6) return `${(n / 1e6).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} M FCFA`;
+  return `${n.toLocaleString("fr-FR")} FCFA`;
+}
+function formatDate(d) {
+  return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+}
+
+async function recharger() {
+  chargement.value = true;
+  try {
+    const r = await apiGet("/marches", {
+      q: q.value.length >= 2 ? q.value : undefined,
+      tri: tri.value,
+      page: page.value,
+      par_page: PAR_PAGE,
+    });
+    marches.value = r.marches;
+    stats.value = { total: r.total, montant: r.montant_total_fcfa };
+  } finally {
+    chargement.value = false;
+  }
+}
+
+function rechercherDebounce() {
+  clearTimeout(minuterie);
+  minuterie = setTimeout(() => {
+    page.value = 1;
+    recharger();
+  }, 350);
+}
+
+onMounted(async () => {
+  const top = await apiGet("/marches", { tri: "montant", par_page: 1 });
+  plusGros.value = top.marches[0] ?? null;
+  await recharger();
+});
+</script>
+
+<style scoped>
+.entete-recherche { align-items: center; }
+.entete-recherche input[type="search"] { flex: 1; max-width: 380px; }
+.ref { font-variant-numeric: tabular-nums; }
+.note-methode { color: var(--text-muted); font-size: 0.82rem; margin-top: 16px; }
+</style>

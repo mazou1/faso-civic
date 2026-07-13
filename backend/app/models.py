@@ -304,7 +304,7 @@ class Marche(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     document_id: Mapped[int] = mapped_column(ForeignKey("document.id"))  # le Quotidien source
-    autorite: Mapped[str] = mapped_column(String(400))  # autorité contractante
+    autorite: Mapped[str | None] = mapped_column(String(400))  # autorité contractante (si nommée)
     objet: Mapped[str] = mapped_column(Text)
     reference: Mapped[str | None] = mapped_column(String(300))  # n° de l'appel/demande
     mode: Mapped[str | None] = mapped_column(String(120))  # demande de prix, AOO…

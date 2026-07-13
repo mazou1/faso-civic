@@ -1,0 +1,173 @@
+"""Extraction déterministe des marchés attribués depuis les tableaux du
+Quotidien des Marchés Publics (DGCMEF).
+
+Chaque « SYNTHÈSE DES RÉSULTATS » est un tableau à colonnes préservées par
+pdfplumber : en-tête (autorité, référence + objet), puis les soumissionnaires
+avec leur montant et une appréciation ; le retenu porte « Conforme … 1er » et
+une ligne « Attributaire : NOM pour un montant de … » clôt le bloc. Pas de LLM,
+pas d'aléa — on lit la structure.
+"""
+
+from __future__ import annotations
+
+import logging
+import re
+from pathlib import Path
+
+import pdfplumber
+
+logger = logging.getLogger(__name__)
+
+RE_MONTANT = re.compile(r"([\d][\d  .]{4,})")
+RE_REF = re.compile(r"((?:Demande de prix|Appel d['’]offres?|Manifestation|Consultation)[^\n.]{0,90})", re.I)
+RE_ATTR_LIGNE = re.compile(r"(.+?)\s+pour un montant de\b", re.I)
+RE_MONTANT_PAREN = re.compile(r"\(([\d  .]+)\)")
+
+
+MONTANT_MAX = 500_000_000_000  # 500 Mds FCFA — au-delà = colonnes concaténées
+
+
+def _montant(brut: str) -> int | None:
+    """Un montant FCFA plausible extrait d'un fragment — None si aberrant."""
+    if not brut:
+        return None
+    # un nombre = suite de chiffres séparés par espaces/points ; on prend le
+    # premier groupe cohérent, pas une concaténation de plusieurs cellules
+    m = re.search(r"\d[\d  .]{4,}", brut)
+    if not m:
+        return None
+    ch = re.sub(r"[^\d]", "", m.group(0))
+    if not (5 <= len(ch) <= 12):
+        return None
+    val = int(ch)
+    return val if 100_000 <= val <= MONTANT_MAX else None
+
+
+def _nettoyer_nom(nom: str) -> str:
+    nom = re.sub(r"^\s*(?:lot\s*(?:unique|n?°?\s*\d+)?\s*:?\s*)", "", nom, flags=re.I)
+    nom = re.sub(r"^\s*(?:provisoire|attributaire)\s*:?\s*", "", nom, flags=re.I)
+    nom = re.sub(r"^\d{1,2}\s+", "", nom)  # colonne « N° ordre » (1-99) en tête, pas « 226 TECH »
+    # coordonnées collées après le nom : « … / TEL : », « … Tél : », « … ( »
+    nom = re.split(r"\s*/?\s*T[ÉE]L\s*[:.]|\s*\(", nom, maxsplit=1, flags=re.I)[0]
+    nom = re.sub(r"\s*[/-]\s*$", "", nom)  # « GROUPEMENT … / » en fin
+    return nom.strip(" :.,-")[:400]
+
+
+def _est_autorite(ligne: str) -> bool:
+    """Une ligne d'en-tête qui ressemble à une autorité contractante, pas à un
+    intitulé de référence/montant."""
+    ligne = ligne.strip()
+    if len(ligne) < 6:
+        return False
+    if re.match(r"(?i)(montant|objet|demande de prix|appel d|référence|financement|n°|lot)", ligne):
+        return False
+    lettres = [c for c in ligne if c.isalpha()]
+    majuscules = sum(1 for c in lettres if c.isupper())
+    return bool(lettres) and majuscules / len(lettres) > 0.6  # majoritairement en capitales
+
+
+def _cellule(row, i) -> str:
+    return (row[i] or "").replace("\n", " ").strip() if i < len(row) else ""
+
+
+def _texte_ligne(row) -> str:
+    return " ".join((c or "").replace("\n", " ") for c in row).strip()
+
+
+def _est_tableau_resultats(t: list) -> bool:
+    entete = " ".join(_texte_ligne(r) for r in t[:4]).lower()
+    return "soumissionnaire" in entete and ("montant" in entete or "appréciation" in entete)
+
+
+def _parse_tableau(t: list) -> dict | None:
+    """Renvoie {autorite, objet, reference, attributaire, montant} ou None."""
+    lignes = [r for r in t if _texte_ligne(r)]
+    if len(lignes) < 4:
+        return None
+
+    # en-tête : les 1-2 premières lignes avant la ligne de colonnes « Soumissionnaires »
+    idx_col = next(
+        (i for i, r in enumerate(lignes) if "soumissionnaire" in _texte_ligne(r).lower()), None
+    )
+    if idx_col is None or idx_col == 0:
+        return None
+    # autorité : la première ligne d'en-tête qui en a l'allure (capitales, pas
+    # « Montant »/« Objet »/« Demande de prix ») ; None si le tableau ne la
+    # nomme pas en clair (elle reste alors lisible dans la référence)
+    autorite = next(
+        (_texte_ligne(r) for r in lignes[:idx_col] if _est_autorite(_texte_ligne(r))),
+        None,
+    )
+    bloc_entete = " ".join(_texte_ligne(r) for r in lignes[:idx_col])
+    ref_m = RE_REF.search(bloc_entete)
+    reference = ref_m.group(1).strip() if ref_m else None
+    # objet : ce qui suit « pour » dans la référence, sinon le bloc d'en-tête
+    objet = None
+    if reference:
+        apres = re.split(r"\bpour\b", bloc_entete, maxsplit=1, flags=re.I)
+        objet = apres[1].strip()[:400] if len(apres) > 1 else reference
+    objet = objet or bloc_entete[:400]
+
+    # attributaire : ligne explicite « Attributaire … pour un montant de (CHIFFRES) »
+    # (signal le plus fiable : le montant retenu est entre parenthèses)
+    attributaire = montant = None
+    for r in lignes[idx_col:]:
+        txt = _texte_ligne(r)
+        if re.search(r"attributaire", txt, re.I):
+            reste = re.sub(r"^.*?attributaire\s*:?\s*", "", txt, flags=re.I)
+            nom_m = RE_ATTR_LIGNE.match(reste)
+            paren = RE_MONTANT_PAREN.search(reste)
+            if nom_m and paren:
+                attributaire = _nettoyer_nom(nom_m.group(1))
+                montant = _montant(paren.group(1))
+                break
+
+    # sinon : la ligne « Conforme … 1er » (soumissionnaire retenu), montant pris
+    # dans une seule cellule chiffrée cohérente
+    if not (attributaire and montant):
+        for r in lignes[idx_col + 1 :]:
+            appr = _cellule(r, len(r) - 1).lower()
+            if re.search(r"conforme.{0,8}1\s*er|1\s*er.{0,8}conforme", appr):
+                nom = _nettoyer_nom(_cellule(r, 0) or _cellule(r, 1))
+                mt = next(
+                    (_montant(_cellule(r, j)) for j in range(1, len(r)) if _montant(_cellule(r, j))),
+                    None,
+                )
+                if nom and mt:
+                    attributaire, montant = nom, mt
+                break
+
+    if not attributaire or not montant:
+        return None
+    if len(attributaire) < 3 or attributaire.lower() in ("néant", "attributaire", "conforme"):
+        return None
+    # l'attributaire ne peut pas être l'autorité (ligne d'en-tête mal découpée)
+    if autorite and attributaire.lower()[:20] == autorite.lower()[:20]:
+        return None
+    return {
+        "autorite": autorite[:400] if autorite else None,
+        "objet": objet,
+        "reference": reference,
+        "attributaire": attributaire,
+        "montant_fcfa": montant,
+    }
+
+
+def extraire_marches(pdf_path: str | Path) -> list[dict]:
+    """Tous les marchés attribués d'un Quotidien, dédupliqués."""
+    resultats: list[dict] = []
+    vus: set[tuple] = set()
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            for t in page.extract_tables():
+                if not _est_tableau_resultats(t):
+                    continue
+                m = _parse_tableau(t)
+                if not m:
+                    continue
+                cle = (re.sub(r"\s+", "", m["attributaire"].lower()), m["montant_fcfa"])
+                if cle in vus:
+                    continue
+                vus.add(cle)
+                resultats.append(m)
+    return resultats

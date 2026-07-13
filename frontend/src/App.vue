@@ -36,6 +36,7 @@ const LIENS = [
   ["/conseils", "Conseil des ministres"],
   ["/textes", "Lois & décrets"],
   ["/finances", "Finances"],
+  ["/marches", "Marchés publics"],
   ["/annuaire", "Annuaire de l'État"],
   ["/documents", "Documents"],
   ["/dossiers", "Dossiers"],
