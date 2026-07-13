@@ -77,6 +77,20 @@
       </div>
     </section>
 
+    <section v-if="resultats.marches && resultats.marches.length">
+      <h2 class="titre-section">Marchés publics</h2>
+      <div class="liste">
+        <article v-for="m in resultats.marches" :key="m.id" class="item">
+          <div class="meta">
+            <span class="badge">Quotidien des Marchés</span>
+            <span v-if="m.date">{{ formatDate(m.date) }}</span>
+          </div>
+          <div class="titre"><a :href="m.url" target="_blank" rel="noopener">{{ m.titre }}</a></div>
+          <div class="detail extrait" v-html="m.extrait"></div>
+        </article>
+      </div>
+    </section>
+
     <section v-if="resultats.actualites.length">
       <h2 class="titre-section">Actualités</h2>
       <div class="liste">
@@ -123,6 +137,7 @@ const vide = computed(() => {
     !r.conseils.length &&
     !r.decisions.length &&
     !r.textes.length &&
+    !(r.marches && r.marches.length) &&
     !r.actualites.length
   );
 });

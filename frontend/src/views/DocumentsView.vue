@@ -75,6 +75,7 @@ const LIBELLES = {
   communique: "Communiqué",
   rapport: "Rapport",
   page_officielle: "Page officielle",
+  marche_public: "Marchés publics (Quotidien)",
 };
 const PAR_PAGE = 20;
 

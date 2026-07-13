@@ -269,6 +269,7 @@ def recherche(
     conseils = _docs(("cr_conseil",))
     textes = _docs(TYPES_TEXTES)
     actualites = _docs(("article_presse", "communique"))
+    marches = _docs(("marche_public",), n=6)
 
     decisions = db.execute(
         select(Decision.id, Decision.objet, Decision.ministere, Decision.document_id, Document.date_publication)
@@ -315,6 +316,10 @@ def recherche(
         "actualites": [
             {"id": d.id, "titre": d.titre, "date": d.date_publication, "url": d.url, "extrait": d.extrait}
             for d in actualites
+        ],
+        "marches": [
+            {"id": d.id, "titre": d.titre, "date": d.date_publication, "url": d.url, "extrait": d.extrait}
+            for d in marches
         ],
     }
 
