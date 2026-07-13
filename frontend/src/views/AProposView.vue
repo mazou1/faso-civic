@@ -45,6 +45,26 @@
       </div>
     </section>
 
+    <section class="item" v-if="etat">
+      <h2>Fraîcheur des données</h2>
+      <div class="detail">
+        <p v-if="etat.muettes === 0">
+          Toutes les collectes sont à jour au regard de leur cadence.
+        </p>
+        <p v-else>
+          <strong>{{ etat.muettes }} source{{ etat.muettes > 1 ? "s" : "" }}</strong> en retard de collecte —
+          nous en avons connaissance et travaillons à la remise à niveau.
+        </p>
+        <ul class="fraicheur">
+          <li v-for="s in etat.sources" :key="s.slug">
+            <span class="pastille" :class="{ ok: !s.muette }"></span>
+            {{ s.nom }}
+            <span class="quand">— {{ s.dernier_run_ok ? depuis(s.dernier_run_ok) : "jamais collectée" }}</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
     <section class="item">
       <h2>La méthode</h2>
       <div class="detail">
@@ -87,3 +107,36 @@
     </section>
   </div>
 </template>
+
+<script setup>
+import { onMounted, ref } from "vue";
+import { apiGet } from "../api";
+
+const etat = ref(null);
+
+function depuis(iso) {
+  const h = (Date.now() - new Date(iso).getTime()) / 3.6e6;
+  if (h < 1.5) return "collectée à l'instant";
+  if (h < 36) return `collectée il y a ${Math.round(h)} h`;
+  return `collectée il y a ${Math.round(h / 24)} j`;
+}
+
+onMounted(async () => {
+  try {
+    etat.value = await apiGet("/sources/etat");
+  } catch {
+    etat.value = null; // section simplement masquée si l'API ne répond pas
+  }
+});
+</script>
+
+<style scoped>
+.fraicheur { list-style: none; padding: 0; margin: 8px 0 0; }
+.fraicheur li { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+.pastille {
+  flex: none; width: 9px; height: 9px; border-radius: 50%;
+  background: #ce1126; /* rouge : en retard */
+}
+.pastille.ok { background: var(--series-1); }
+.quand { color: var(--text-muted); font-size: 0.88rem; }
+</style>
