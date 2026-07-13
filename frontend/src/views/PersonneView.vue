@@ -52,6 +52,7 @@
             <router-link v-if="f.source_id" :to="`/conseils/${f.source_id}`">{{ sourceCourte(f) }}</router-link>
             <a v-else :href="f.source_url" target="_blank" rel="noopener">{{ sourceCourte(f) }}</a>
           </div>
+          <ContexteSource v-if="f.nomination_id" genre="nomination" :id="f.nomination_id" />
         </div>
       </article>
     </div>
@@ -63,6 +64,7 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import { apiGet } from "../api";
+import ContexteSource from "../components/ContexteSource.vue";
 
 const route = useRoute();
 const fiche = ref(null);

@@ -43,6 +43,7 @@
               {{ fmtFCFA(e.montant_fcfa) }}<template v-if="e.beneficiaire"> — {{ e.beneficiaire }}</template>
             </div>
             <div class="detail">{{ e.objet }}</div>
+            <ContexteSource v-if="e.beneficiaire" genre="engagement" :id="e.id" />
           </article>
         </div>
       </section>
@@ -56,6 +57,7 @@
             </div>
             <div class="titre">{{ n.personne }}</div>
             <div class="detail">{{ n.poste }}<template v-if="n.structure"> — {{ n.structure }}</template></div>
+            <ContexteSource genre="nomination" :id="n.id" />
           </article>
         </div>
       </section>
@@ -78,6 +80,7 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import { apiGet } from "../api";
+import ContexteSource from "../components/ContexteSource.vue";
 
 const LIBELLES_DECISION = {
   adoption_decret: "Décret",

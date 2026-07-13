@@ -708,6 +708,7 @@ def fiche_personne(personne_id: int, db: Session = Depends(get_db)):
                 "structure": str(m.structure) if m.structure else None,
                 "date_debut": m.date_debut.isoformat() if m.date_debut else None,
                 "date_fin": m.date_fin.isoformat() if m.date_fin else None,
+                "nomination_id": m.nomination_debut_id,
                 "source_titre": doc.titre if doc else None,
                 "source_url": doc.url if doc else None,
                 "source_id": doc.id if doc and doc.type_doc == "cr_conseil" else None,
@@ -851,6 +852,33 @@ def get_document(doc_id: int, db: Session = Depends(get_db)):
         statut_extraction=d.statut_extraction,
         meta=d.meta,
     )
+
+
+@router.get("/contexte/{genre}/{entite_id}")
+def contexte(genre: str, entite_id: int, db: Session = Depends(get_db)) -> dict:
+    """« La source en contexte » : la phrase du compte rendu d'où provient une
+    nomination ou un engagement, avec les ancres surlignées (<mark>)."""
+    from app.extraction.contexte import localiser
+
+    if genre == "nomination":
+        n = db.get(Nomination, entite_id)
+        if n is None:
+            raise HTTPException(404, "Nomination introuvable")
+        doc = n.document
+        ancres = [(n.matricule or "", True), (n.personne.nom_complet, False)]
+    elif genre == "engagement":
+        e = db.get(EngagementFinancier, entite_id)
+        if e is None:
+            raise HTTPException(404, "Engagement introuvable")
+        doc = e.document
+        ancres = [(e.beneficiaire or "", False)]
+    else:
+        raise HTTPException(404, "Type de contexte inconnu")
+
+    return {
+        "passage": localiser(doc.texte_extrait, ancres),
+        "document": {"id": doc.id, "titre": doc.titre, "url": doc.url},
+    }
 
 
 @router.get("/documents/{doc_id}/fichier")
