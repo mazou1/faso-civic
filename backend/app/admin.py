@@ -21,6 +21,7 @@ from app.models import (
     DotationBudgetaire,
     EngagementFinancier,
     Mandat,
+    Marche,
     MembreGouvernement,
     Nomination,
     Personne,
@@ -222,6 +223,26 @@ class BudgetAdmin(ValidationActionsMixin, ModelView, model=BudgetExercice):
     icon = "fa-solid fa-scale-balanced"
 
 
+class MarcheAdmin(ValidationActionsMixin, ModelView, model=Marche):
+    modele = Marche
+    name_plural = "Marchés publics (validation)"
+    page_size = 100
+    column_list = [
+        Marche.id,
+        Marche.attributaire,
+        Marche.montant_fcfa,
+        Marche.autorite,
+        Marche.objet,
+        Marche.date_attribution,
+        Marche.score_confiance,
+        Marche.statut_validation,
+    ]
+    column_searchable_list = [Marche.attributaire, Marche.autorite, Marche.objet]
+    column_sortable_list = [Marche.montant_fcfa, Marche.date_attribution, Marche.statut_validation]
+    column_default_sort = ("montant_fcfa", True)
+    icon = "fa-solid fa-file-signature"
+
+
 class DotationAdmin(ValidationActionsMixin, ModelView, model=DotationBudgetaire):
     modele = DotationBudgetaire
     name_plural = "Dotations budgétaires (saisie)"
@@ -333,6 +354,7 @@ def mount_admin(app: FastAPI) -> None:
         NominationAdmin,
         EngagementAdmin,
         BudgetAdmin,
+        MarcheAdmin,
         DotationAdmin,
         RepartitionAdmin,
         MembreGouvernementAdmin,

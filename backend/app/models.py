@@ -293,6 +293,34 @@ class RepartitionBudgetaire(Base):
         return f"{self.exercice} {self.sens} — {self.libelle[:40]}"
 
 
+class Marche(Base):
+    """Marché public attribué, extrait des « Synthèses des résultats » du
+    Quotidien des Marchés Publics (DGCMEF). Qui décroche quel marché, pour
+    quel montant, sous quelle autorité contractante — extraction LLM, validée
+    avant publication comme le reste.
+    """
+
+    __tablename__ = "marche"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    document_id: Mapped[int] = mapped_column(ForeignKey("document.id"))  # le Quotidien source
+    autorite: Mapped[str] = mapped_column(String(400))  # autorité contractante
+    objet: Mapped[str] = mapped_column(Text)
+    reference: Mapped[str | None] = mapped_column(String(300))  # n° de l'appel/demande
+    mode: Mapped[str | None] = mapped_column(String(120))  # demande de prix, AOO…
+    attributaire: Mapped[str | None] = mapped_column(String(400))  # entreprise retenue
+    montant_fcfa: Mapped[int | None] = mapped_column(BigInteger)
+    region: Mapped[str | None] = mapped_column(String(120))
+    date_attribution: Mapped[date | None] = mapped_column(Date)
+    score_confiance: Mapped[float | None] = mapped_column(Float)
+    statut_validation: Mapped[str] = mapped_column(String(20), default="a_valider", index=True)
+
+    document: Mapped[Document] = relationship()
+
+    def __str__(self) -> str:
+        return f"{self.attributaire or '?'} — {self.objet[:50]}"
+
+
 class Mandat(Base):
     """Vue consolidée dérivée des nominations validées — alimente l'annuaire."""
 
