@@ -103,6 +103,18 @@
           <a href="https://www.vie-publique.sn" target="_blank" rel="noopener">vie-publique.sn</a>
           (Code for Senegal).
         </p>
+        <p><strong>Télécharger les données (CSV) :</strong></p>
+        <ul class="telechargements">
+          <li><a href="/api/export/nominations.csv">Nominations</a> — toutes les nominations validées</li>
+          <li><a href="/api/export/annuaire.csv">Annuaire de l'État</a> — mandats consolidés</li>
+          <li><a href="/api/export/decisions.csv">Décisions</a> — décisions du Conseil des ministres</li>
+          <li><a href="/api/export/engagements.csv">Engagements financiers</a> — dépenses chiffrées en Conseil</li>
+          <li><a href="/api/export/textes.csv">Lois &amp; décrets</a> — références des textes juridiques</li>
+        </ul>
+        <p class="note-licence">
+          Réutilisation libre en citant « FasoCivic » et la source officielle d'origine.
+          Chaque fichier inclut le lien vers le document source de chaque ligne.
+        </p>
       </div>
     </section>
   </div>
@@ -139,4 +151,7 @@ onMounted(async () => {
 }
 .pastille.ok { background: var(--series-1); }
 .quand { color: var(--text-muted); font-size: 0.88rem; }
+.telechargements { margin: 4px 0; }
+.telechargements a { font-weight: 600; }
+.note-licence { color: var(--text-muted); font-size: 0.88rem; }
 </style>

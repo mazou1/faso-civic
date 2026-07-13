@@ -1068,3 +1068,154 @@ def list_nominations(
             for n in db.scalars(stmt).all()
         ],
     )
+
+
+# ── Export open data (CSV) ────────────────────────────────────────────────
+# Les jeux de données validés, téléchargeables en CSV pour réutilisation
+# (journalistes, chercheurs, société civile). Une ligne = un fait sourcé.
+
+def _csv(colonnes: list[str], lignes) -> "StreamingResponse":
+    import csv
+    import io
+
+    from fastapi.responses import StreamingResponse
+
+    def flux():
+        tampon = io.StringIO()
+        w = csv.writer(tampon)
+        w.writerow(colonnes)
+        yield tampon.getvalue()
+        for ligne in lignes:
+            tampon.seek(0)
+            tampon.truncate(0)
+            w.writerow(ligne)
+            yield tampon.getvalue()
+
+    return StreamingResponse(flux(), media_type="text/csv; charset=utf-8")
+
+
+@router.get("/export/nominations.csv")
+def export_nominations(db: Session = Depends(get_db)):
+    """Toutes les nominations validées, avec leur compte rendu source."""
+    stmt = (
+        select(Nomination)
+        .join(Document)
+        .where(Nomination.statut_validation == "valide")
+        .order_by(Document.date_publication.desc().nulls_last(), Nomination.id.desc())
+    )
+    lignes = (
+        (
+            n.id,
+            n.personne.nom_complet,
+            n.personne.matricule or "",
+            n.poste,
+            str(n.structure) if n.structure else "",
+            "fin de fonction" if n.type == "fin_fonction" else "nomination",
+            n.document.date_publication.isoformat() if n.document.date_publication else "",
+            n.document.url,
+        )
+        for n in db.scalars(stmt).all()
+    )
+    return _csv(
+        ["id", "personne", "matricule", "poste", "structure", "type", "date_conseil", "source_url"],
+        lignes,
+    )
+
+
+@router.get("/export/engagements.csv")
+def export_engagements(db: Session = Depends(get_db)):
+    """Engagements financiers validés du Conseil des ministres."""
+    stmt = (
+        select(EngagementFinancier)
+        .join(Document)
+        .where(EngagementFinancier.statut_validation == "valide")
+        .order_by(EngagementFinancier.montant_fcfa.desc().nulls_last())
+    )
+    lignes = (
+        (
+            e.id,
+            e.type,
+            e.objet,
+            e.beneficiaire or "",
+            e.ministere or "",
+            e.montant_fcfa if e.montant_fcfa is not None else "",
+            e.document.date_publication.isoformat() if e.document.date_publication else "",
+            e.document.url,
+        )
+        for e in db.scalars(stmt).all()
+    )
+    return _csv(
+        ["id", "type", "objet", "beneficiaire", "ministere", "montant_fcfa", "date_conseil", "source_url"],
+        lignes,
+    )
+
+
+@router.get("/export/decisions.csv")
+def export_decisions(db: Session = Depends(get_db)):
+    """Décisions validées du Conseil des ministres."""
+    stmt = (
+        select(Decision)
+        .join(Document)
+        .where(Decision.statut_validation == "valide")
+        .order_by(Document.date_publication.desc().nulls_last(), Decision.id.desc())
+    )
+    lignes = (
+        (
+            d.id,
+            d.type,
+            d.ministere or "",
+            d.objet,
+            d.document.date_publication.isoformat() if d.document.date_publication else "",
+            d.document.url,
+        )
+        for d in db.scalars(stmt).all()
+    )
+    return _csv(["id", "type", "ministere", "objet", "date_conseil", "source_url"], lignes)
+
+
+@router.get("/export/textes.csv")
+def export_textes(db: Session = Depends(get_db)):
+    """Textes juridiques (Légiburkina) : décrets, lois, arrêtés…"""
+    stmt = (
+        select(Document)
+        .where(Document.type_doc.in_(TYPES_TEXTES))
+        .order_by(Document.date_publication.desc().nulls_last(), Document.id.desc())
+    )
+    lignes = (
+        (
+            d.id,
+            d.type_doc,
+            (d.meta or {}).get("reference", ""),
+            d.titre or "",
+            d.date_publication.isoformat() if d.date_publication else "",
+            (d.meta or {}).get("jo_numero", ""),
+            d.url,
+        )
+        for d in db.scalars(stmt).all()
+    )
+    return _csv(["id", "type", "reference", "titre", "date", "journal_officiel", "url_pdf"], lignes)
+
+
+@router.get("/export/annuaire.csv")
+def export_annuaire(db: Session = Depends(get_db)):
+    """Annuaire de l'État : mandats consolidés."""
+    stmt = select(Mandat).join(Personne).outerjoin(Structure).order_by(
+        Mandat.date_debut.desc().nulls_last(), Mandat.id.desc()
+    )
+    lignes = (
+        (
+            m.id,
+            m.personne.nom_complet,
+            m.personne.matricule or "",
+            m.poste,
+            str(m.structure) if m.structure else "",
+            m.date_debut.isoformat() if m.date_debut else "",
+            m.date_fin.isoformat() if m.date_fin else "",
+            "en cours" if m.date_fin is None else "terminé",
+        )
+        for m in db.scalars(stmt).all()
+    )
+    return _csv(
+        ["id", "personne", "matricule", "poste", "structure", "date_debut", "date_fin", "statut"],
+        lignes,
+    )

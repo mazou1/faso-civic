@@ -130,6 +130,7 @@
       <option value="montant">Par montant</option>
       <option value="date">Par date</option>
     </select>
+    <a class="export" href="/api/export/engagements.csv" title="Télécharger tous les engagements (CSV)">⬇ CSV</a>
   </div>
 
   <div class="liste">

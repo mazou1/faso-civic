@@ -16,7 +16,10 @@
       placeholder="Rechercher une personne (ex : SABO, OUEDRAOGO…)"
       @input="rechercherDebounce"
     />
-    <span class="compteur" v-if="total !== null">{{ total.toLocaleString("fr-FR") }} nominations</span>
+    <span class="compteur" v-if="total !== null">
+      {{ total.toLocaleString("fr-FR") }} nominations
+      <a class="export" href="/api/export/nominations.csv" title="Télécharger toutes les nominations (CSV)">⬇ CSV</a>
+    </span>
   </div>
 
   <div class="liste">

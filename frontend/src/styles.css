@@ -216,3 +216,10 @@ a.item-lien:hover, .item:hover { border-color: color-mix(in srgb, var(--accent) 
 .feuille-menu a { padding: 11px 12px; border-radius: 10px; color: var(--text-primary); font-weight: 500; }
 .feuille-menu a:hover { text-decoration: none; background: color-mix(in srgb, var(--accent) 10%, transparent); }
 @keyframes monter-feuille { from { transform: translateY(24px); opacity: 0.6; } to { transform: none; opacity: 1; } }
+
+/* Lien d'export CSV (listes de données ouvertes) */
+.export {
+  margin-left: 8px; font-size: 0.8rem; font-weight: 600; white-space: nowrap;
+  padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px;
+}
+.export:hover { text-decoration: none; border-color: var(--accent); }
