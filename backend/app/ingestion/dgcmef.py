@@ -107,7 +107,7 @@ class DgcmefCollector(Collector):
         texte, statut = extraire_texte(settings.data_dir / fichier, ocr=False)
         num, pub = self._date_et_numero(texte, pdf_url)
         titre = f"Quotidien des Marchés Publics n°{num}" if num else "Quotidien des Marchés Publics"
-        self.upsert_document(
+        doc = self.upsert_document(
             url=pdf_url,
             type_doc="marche_public",
             titre=titre,
@@ -119,3 +119,12 @@ class DgcmefCollector(Collector):
             statut_extraction="ok" if statut == "ok" else "scan",
         )
         logger.info("%s : %s (%s)", self.slug, titre, pub or "date ?")
+        # extraction déterministe des marchés attribués (a_valider) — pas de LLM
+        if doc is not None:
+            try:
+                from app.extraction.marches import traiter_document
+
+                n = traiter_document(self.db, doc)
+                logger.info("%s : %d marché(s) attribué(s) extraits de %s", self.slug, n, titre)
+            except Exception:
+                logger.exception("%s : extraction des marchés échouée pour %s", self.slug, titre)
