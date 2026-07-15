@@ -41,6 +41,7 @@
         {{ fmtFCFA(m.montant_fcfa) }}<template v-if="m.attributaire"> — {{ m.attributaire }}</template>
       </div>
       <div class="detail">{{ m.objet }}</div>
+      <ContexteSource genre="marche" :id="m.id" libelle="le Quotidien officiel" />
       <div class="meta" style="margin-top: 4px">
         <span v-if="m.reference" class="ref">{{ m.reference }}</span>
         <a class="source" :href="`/api/documents/${m.document_id}/fichier`" target="_blank" rel="noopener">
@@ -68,6 +69,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { apiGet } from "../api";
+import ContexteSource from "../components/ContexteSource.vue";
 
 const PAR_PAGE = 20;
 const marches = ref([]);

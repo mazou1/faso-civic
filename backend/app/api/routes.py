@@ -877,6 +877,14 @@ def contexte(genre: str, entite_id: int, db: Session = Depends(get_db)) -> dict:
             raise HTTPException(404, "Engagement introuvable")
         doc = e.document
         ancres = [(e.beneficiaire or "", False)]
+    elif genre == "marche":
+        from app.models import Marche
+
+        m = db.get(Marche, entite_id)
+        if m is None:
+            raise HTTPException(404, "Marché introuvable")
+        doc = m.document
+        ancres = [(m.attributaire or "", False)]
     else:
         raise HTTPException(404, "Type de contexte inconnu")
 

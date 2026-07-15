@@ -1,7 +1,7 @@
 <template>
   <div class="contexte">
     <button class="bascule" @click="basculer">
-      {{ ouvert ? "▾" : "▸" }} Voir dans le compte rendu officiel
+      {{ ouvert ? "▾" : "▸" }} Voir dans {{ libelle }}
     </button>
     <blockquote v-if="ouvert && passage" class="passage" v-html="passage"></blockquote>
     <p v-else-if="ouvert && chargement" class="etat">Recherche du passage…</p>
@@ -16,7 +16,11 @@
 import { ref } from "vue";
 import { apiGet } from "../api";
 
-const props = defineProps({ genre: String, id: Number });
+const props = defineProps({
+  genre: String,
+  id: Number,
+  libelle: { type: String, default: "le compte rendu officiel" },
+});
 
 const ouvert = ref(false);
 const chargement = ref(false);
