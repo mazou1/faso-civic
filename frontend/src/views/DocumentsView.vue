@@ -1,8 +1,9 @@
 <template>
   <h1>Documents</h1>
   <p class="sous-titre">
-    Tous les documents officiels collectés et archivés par la plateforme : comptes rendus,
-    textes juridiques, communiqués, articles et rapports — chacun relié à sa source d'origine.
+    Les documents officiels collectés et archivés par la plateforme : comptes rendus du Conseil
+    des ministres, lois et décrets, marchés publics et autres textes — chacun relié à sa source
+    d'origine. Les articles de presse et communiqués sont dans les <router-link to="/actualites">Actualités</router-link>.
   </p>
 
   <div class="filtres entete-recherche">

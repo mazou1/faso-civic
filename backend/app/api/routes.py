@@ -788,6 +788,12 @@ class DocumentsPage(BaseModel):
     sources: list[dict]
 
 
+# La bibliothèque « Documents » ne montre que des documents officiels : on
+# écarte les actualités (articles de presse, communiqués — elles ont leur
+# propre page) et les traductions de CR en langues nationales (doublons/junk).
+TYPES_HORS_DOCUMENTS = ("article_presse", "communique", "cr_conseil_traduction")
+
+
 @router.get("/documents", response_model=DocumentsPage)
 def list_documents(
     db: Session = Depends(get_db),
@@ -797,9 +803,11 @@ def list_documents(
     page: int = Query(1, ge=1),
     par_page: int = Query(20, ge=1, le=100),
 ):
-    """Bibliothèque de tous les documents archivés, avec facettes types/sources."""
+    """Bibliothèque des documents officiels archivés, avec facettes types/sources
+    (hors actualités et traductions, cf. TYPES_HORS_DOCUMENTS)."""
 
     def _filtre(stmt, avec_source=True, avec_type=True):
+        stmt = stmt.where(Document.type_doc.not_in(TYPES_HORS_DOCUMENTS))
         if source and avec_source:
             stmt = stmt.where(Source.slug == source)
         if type_doc and avec_type:
