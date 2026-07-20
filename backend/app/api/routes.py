@@ -674,6 +674,160 @@ def annuaire(
     return AnnuairePage(total=int(total or 0), mandats=resultats)
 
 
+class InstitutionOut(BaseModel):
+    id: int
+    nom: str
+    sigle: str | None
+    type: str
+    groupe: str
+    nb_agents: int
+
+
+class InstitutionsPage(BaseModel):
+    total_institutions: int
+    total_agents: int
+    institutions: list[InstitutionOut]
+
+
+@router.get("/annuaire/institutions", response_model=InstitutionsPage)
+def annuaire_institutions(
+    db: Session = Depends(get_db),
+    q: str | None = Query(None, min_length=2, description="Nom ou sigle d'institution"),
+):
+    """Index des institutions de l'État (structures canoniques ayant au moins un
+    agent recensé), avec type déduit et effectif — pour naviguer l'annuaire par
+    institution plutôt qu'en liste plate."""
+    from sqlalchemy.orm import aliased
+
+    from app.annuaire_taxonomie import GROUPES_INSTITUTION, type_institution
+
+    canon = aliased(Structure)
+    cid = func.coalesce(Structure.canonique_id, Structure.id)
+    stmt = (
+        select(
+            canon.id,
+            canon.nom,
+            canon.sigle,
+            func.count(func.distinct(Mandat.personne_id)).label("n"),
+        )
+        .select_from(Mandat)
+        .join(Structure, Structure.id == Mandat.structure_id)
+        .join(canon, canon.id == cid)
+        .group_by(canon.id, canon.nom, canon.sigle)
+    )
+    if q:
+        motif = f"%{q}%"
+        stmt = stmt.where(canon.nom.ilike(motif) | canon.sigle.ilike(motif))
+    rows = db.execute(stmt).all()
+
+    libelles = dict(GROUPES_INSTITUTION)
+    institutions = []
+    for r in rows:
+        t = type_institution(r.nom, r.sigle)
+        institutions.append(
+            InstitutionOut(
+                id=r.id, nom=r.nom, sigle=r.sigle, type=t,
+                groupe=libelles.get(t, "Autres"), nb_agents=int(r.n),
+            )
+        )
+    # tri : effectif décroissant, puis nom
+    institutions.sort(key=lambda i: (-i.nb_agents, i.nom.lower()))
+    return InstitutionsPage(
+        total_institutions=len(institutions),
+        total_agents=sum(i.nb_agents for i in institutions),
+        institutions=institutions,
+    )
+
+
+class AgentOut(BaseModel):
+    personne_id: int
+    personne: str
+    matricule: str | None
+    poste: str | None
+    date_debut: date | None
+    document_url: str | None
+
+
+class CategorieAgents(BaseModel):
+    categorie: str
+    agents: list[AgentOut]
+
+
+class InstitutionDetail(BaseModel):
+    id: int
+    nom: str
+    sigle: str | None
+    type: str
+    nb_agents: int
+    categories: list[CategorieAgents]
+
+
+@router.get("/annuaire/institutions/{struct_id}", response_model=InstitutionDetail)
+def annuaire_institution(struct_id: int, db: Session = Depends(get_db)):
+    """Agents d'une institution (structure canonique), regroupés par catégorie
+    de fonction."""
+    from app.annuaire_taxonomie import (
+        CATEGORIES_FONCTION,
+        categorie_fonction,
+        type_institution,
+    )
+
+    inst = db.get(Structure, struct_id)
+    if inst is None:
+        raise HTTPException(status_code=404, detail="Institution inconnue")
+    # la structure de référence est la canonique (si struct_id en est une variante)
+    if inst.canonique_id:
+        inst = db.get(Structure, inst.canonique_id) or inst
+
+    cid = func.coalesce(Structure.canonique_id, Structure.id)
+    rows = db.execute(
+        select(
+            Mandat.personne_id,
+            Personne.nom_complet,
+            Personne.matricule,
+            Mandat.poste,
+            Mandat.date_debut,
+            Document.url,
+        )
+        .select_from(Mandat)
+        .join(Personne, Personne.id == Mandat.personne_id)
+        .join(Structure, Structure.id == Mandat.structure_id)
+        .outerjoin(Nomination, Nomination.id == Mandat.nomination_debut_id)
+        .outerjoin(Document, Document.id == Nomination.document_id)
+        .where(cid == inst.id)
+        .order_by(Mandat.poste, Personne.nom_complet)
+    ).all()
+
+    groupes: dict[str, list[AgentOut]] = {}
+    personnes = set()
+    for r in rows:
+        personnes.add(r.personne_id)
+        cat = categorie_fonction(r.poste)
+        groupes.setdefault(cat, []).append(
+            AgentOut(
+                personne_id=r.personne_id,
+                personne=r.nom_complet,
+                matricule=r.matricule,
+                poste=r.poste,
+                date_debut=r.date_debut,
+                document_url=r.url,
+            )
+        )
+    categories = [
+        CategorieAgents(categorie=c, agents=groupes[c])
+        for c in CATEGORIES_FONCTION
+        if c in groupes
+    ]
+    return InstitutionDetail(
+        id=inst.id,
+        nom=inst.nom,
+        sigle=inst.sigle,
+        type=type_institution(inst.nom, inst.sigle),
+        nb_agents=len(personnes),
+        categories=categories,
+    )
+
+
 class FichePersonne(BaseModel):
     id: int
     nom_complet: str
