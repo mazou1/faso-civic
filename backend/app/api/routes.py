@@ -790,8 +790,10 @@ class DocumentsPage(BaseModel):
 
 # La bibliothèque « Documents » ne montre que des documents officiels : on
 # écarte les actualités (articles de presse, communiqués — elles ont leur
-# propre page) et les traductions de CR en langues nationales (doublons/junk).
-TYPES_HORS_DOCUMENTS = ("article_presse", "communique", "cr_conseil_traduction")
+# propre page), les traductions de CR en langues nationales (doublons/junk)
+# et les Quotidiens des Marchés Publics (bulletins-source, exposés via /marches ;
+# le PDF reste accessible par lien direct depuis chaque marché).
+TYPES_HORS_DOCUMENTS = ("article_presse", "communique", "cr_conseil_traduction", "marche_public")
 
 
 @router.get("/documents", response_model=DocumentsPage)
