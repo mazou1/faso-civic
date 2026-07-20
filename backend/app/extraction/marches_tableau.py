@@ -112,6 +112,69 @@ def nettoyer_objet(brut: str | None) -> str | None:
     return txt[:300]
 
 
+# --- nettoyage de l'attributaire ---------------------------------------------
+# Même mal que l'objet : préfixes (« Lot N : », « L'attributaire est … ») et
+# suffixes (« … pour un montant de … », « … est attributaire », adresses) qui
+# collent au nom de l'entreprise ; parfois l'objet a débordé dans la cellule.
+RE_ATT_PREFIXE = re.compile(
+    r"^\s*(?:"
+    r"s\s+(?=lot|provisoire|r[ée]sultat)"
+    r"|(?:r[ée]sultats?\s+)?provisoires?\s*:?\s*"
+    r"|provi(?:so|oi)re\s*:\s*"
+    r"|lot\s*(?:unique|n[°o]?\s*\d+|\d+)\s*:?\s*"
+    r"|l['’]attributaire\s+(?:provisoire\s+)?est\s+"
+    r"|attributaire\s*(?:provisoire\s*)?:\s*"
+    r")",
+    re.I,
+)
+RE_ATT_SUFFIXE = re.compile(
+    r"\s+(?:"
+    r"est\s+(?:d[ée]clar[ée]e?\s+)?attributaire.*"
+    r"|attributaire(?:\s+provisoire)?\b.*"
+    r"|pour\s+un\s+montant.*"
+    r"|pour\s+(?:l['’]acquisition|l['’]installation|les\s+travaux|la\s+r[ée]alisation"
+    r"|la\s+fourniture|la\s+construction|le\s+march).*"
+    r"|,?\s*adresse\s*:.*"
+    r"|\d{2}\s*BP\b.*"
+    r")$",
+    re.I,
+)
+RE_ATT_OBJET = re.compile(
+    r"^(?:l['’])?(?:acquisition|demande|travaux|r[ée]alisation|fourniture|prestation"
+    r"|construction|r[ée]habilitation|entretien|achat|livraison|installation|dossier"
+    r"|confection|location)\b",
+    re.I,
+)
+
+
+def nettoyer_attributaire(brut: str | None) -> str | None:
+    """Nom d'entreprise seul. None si l'objet a débordé dans la cellule et
+    qu'aucun nom exploitable n'en ressort (extraction à revoir). Idempotent."""
+    if not brut:
+        return brut
+    txt = re.sub(r"\s+", " ", brut).strip()
+    for _ in range(4):  # préfixes empilés : « s provisoires : Lot unique : NOM »
+        nouv = RE_ATT_PREFIXE.sub("", txt).strip()
+        if nouv == txt:
+            break
+        txt = nouv
+    txt = RE_ATT_SUFFIXE.sub("", txt).strip()
+    # objet qui a débordé : tenter le nom après le dernier « : », sinon abandon
+    if RE_ATT_OBJET.match(txt):
+        if ":" in txt:
+            cand = txt.rsplit(":", 1)[1].strip(" :.,;-«»<>")
+            if 3 <= len(cand) <= 50 and not RE_ATT_OBJET.match(cand):
+                txt = cand
+            else:
+                return None
+        else:
+            return None
+    txt = txt.strip(" :.,;-«»<>")
+    if len(txt) < 3 or RE_ATT_OBJET.match(txt):
+        return None
+    return txt[:400]
+
+
 MONTANT_MAX = 500_000_000_000  # 500 Mds FCFA — au-delà = colonnes concaténées
 
 
@@ -225,6 +288,10 @@ def _parse_tableau(t: list) -> dict | None:
                 if nom and mt:
                     attributaire, montant = nom, mt
                 break
+
+    # nettoyage fin de l'attributaire (préfixes/suffixes, objet débordé → None)
+    if attributaire:
+        attributaire = nettoyer_attributaire(attributaire)
 
     if not attributaire or not montant:
         return None

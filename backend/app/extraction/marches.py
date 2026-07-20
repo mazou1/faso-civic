@@ -48,19 +48,32 @@ def traiter_document(db, doc: Document) -> int:
 
 
 def renettoyer_objets() -> int:
-    """Applique le nettoyage d'objet aux marchés déjà en base (idempotent)."""
-    from app.extraction.marches_tableau import nettoyer_objet
+    """Nettoie objet ET attributaire des marchés en base (idempotent). Les
+    lignes dont l'attributaire est cassé (objet débordé) sont démotées en
+    'a_valider' pour revue plutôt que publiées avec un faux attributaire."""
+    from app.extraction.marches_tableau import nettoyer_attributaire, nettoyer_objet
 
     with SessionLocal() as db:
         marches = db.scalars(select(Marche)).all()
-        modifies = 0
+        obj_mod = att_mod = demotes = 0
         for m in marches:
-            net = nettoyer_objet(m.objet)
-            if net and net != m.objet:
-                m.objet = net
-                modifies += 1
+            net_o = nettoyer_objet(m.objet)
+            if net_o and net_o != m.objet:
+                m.objet = net_o
+                obj_mod += 1
+            net_a = nettoyer_attributaire(m.attributaire)
+            if net_a is None:  # attributaire inexploitable → à revoir
+                if m.statut_validation == "valide":
+                    m.statut_validation = "a_valider"
+                    demotes += 1
+            elif net_a != m.attributaire:
+                m.attributaire = net_a
+                att_mod += 1
         db.commit()
-        print(f"{modifies}/{len(marches)} objet(s) nettoyé(s).")
+        print(
+            f"{obj_mod} objet(s) et {att_mod} attributaire(s) nettoyés ; "
+            f"{demotes} ligne(s) cassée(s) démotée(s) en a_valider."
+        )
     return 0
 
 
