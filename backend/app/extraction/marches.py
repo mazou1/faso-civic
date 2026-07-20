@@ -47,8 +47,27 @@ def traiter_document(db, doc: Document) -> int:
     return len(marches)
 
 
+def renettoyer_objets() -> int:
+    """Applique le nettoyage d'objet aux marchés déjà en base (idempotent)."""
+    from app.extraction.marches_tableau import nettoyer_objet
+
+    with SessionLocal() as db:
+        marches = db.scalars(select(Marche)).all()
+        modifies = 0
+        for m in marches:
+            net = nettoyer_objet(m.objet)
+            if net and net != m.objet:
+                m.objet = net
+                modifies += 1
+        db.commit()
+        print(f"{modifies}/{len(marches)} objet(s) nettoyé(s).")
+    return 0
+
+
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    if len(sys.argv) > 1 and sys.argv[1] == "renettoyer":
+        return renettoyer_objets()
     max_docs = int(sys.argv[1]) if len(sys.argv) > 1 else 20
     with SessionLocal() as db:
         deja = select(Marche.document_id).distinct().subquery()

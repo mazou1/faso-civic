@@ -23,6 +23,88 @@ RE_REF = re.compile(r"((?:Demande de prix|Appel d['’]offres?|Manifestation|Con
 RE_ATTR_LIGNE = re.compile(r"(.+?)\s+pour un montant de\b", re.I)
 RE_MONTANT_PAREN = re.compile(r"\(([\d  .]+)\)")
 
+# --- nettoyage de l'objet -----------------------------------------------------
+# L'en-tête du tableau accole à l'objet des rubriques administratives
+# (financement, référence de publication, dates, convocation, …). On coupe
+# l'objet au premier de ces marqueurs, en préférant le champ « Objet : … »
+# explicite et en retirant préambules de référence et préfixes géographiques.
+RE_OBJET_COUPE = re.compile(
+    r"\s*(?:[-.;:]\s*)?\b(?:"
+    r"r[ée]f[ée]rences?\b"
+    r"|financement\b"
+    r"|publi(?:cation|[ée]s?)\b"
+    r"|avis\s+(?:publi|de\s+(?:la\s+)?(?:demande|publication)|d[e’'])"
+    r"|n[°o]\s+de\s+la\s+revue\b"
+    r"|date\s+d[e’']"
+    r"|dates?\s+de\b"
+    r"|nombre\s+de\b"
+    r"|convocation\b"
+    r"|lettre\s+de\s+convocation\b"
+    r"|revue\s+des\s+march[ée]s\b"
+    r"|quotidien\s+(?:des\s+march[ée]s|n[°o])"
+    r"|rmp\s*n[°o]"
+    r"|budget\s+pr[ée]visionnel\b"
+    r"|bornes?\s+(?:sup|inf)"
+    r"|offre\s+anormalement\b"
+    r"|enveloppe\b"
+    r")",
+    re.I,
+)
+RE_OBJET_ENTETE = re.compile(r"\bobjet\s*:\s*", re.I)
+RE_OBJET_PREAMBULE = re.compile(
+    r"^(?:r[ée]gion\s+d[eu]\s+[A-ZÀ-Ÿ' -]+?\s+)?"
+    r"(?:demande\s+de\s+prix|demande\s+de\s+cotations?|appel\s+d['’]offres?"
+    r"|ddp|manifestation\s+d['’]int[ée]r[êe]t)\b"
+    r"[^.]*?\bn[°o][^.]*?"
+    r"\b(?:relati[fv]e?s?\s+(?:à|aux?|au)|portant\s+sur|pour)\s+",
+    re.I,
+)
+RE_OBJET_GEO = re.compile(
+    r"^(?:r[ée]gion\s+d[eu]\s+[A-ZÀ-Ÿ' -]+?\s+)?"
+    r"(?:commun[eu]{1,2}\s+(?:de\s+|d[’'])[A-ZÀ-Ÿ' -]+?\s+)?",
+    re.I,
+)
+# objet resté purement administratif = capture ratée (aucun objet réel dans le
+# tableau) ; un vrai objet ne commence jamais par ces mots
+RE_OBJET_BRUIT = re.compile(
+    r"^(?:r[ée]f[ée]rence|marge|dates?|financement|nombre|montant|publication"
+    r"|convocation|lettre|bornes?|revue|quotidien|attributaire|moyenne|offre)\b",
+    re.I,
+)
+OBJET_INCONNU = "Objet non précisé (voir le Quotidien)"
+
+
+def nettoyer_objet(brut: str | None) -> str | None:
+    """Objet lisible : coupe les rubriques administratives, retire préambules
+    de référence et préfixes géographiques. Idempotent."""
+    if not brut:
+        return brut
+    txt = re.sub(r"\s+", " ", brut).strip()
+    # préférer le champ explicite « Objet : … » en tête, sinon retirer un
+    # préambule « DEMANDE DE PRIX N°… relatif à … »
+    m = RE_OBJET_ENTETE.search(txt)
+    if m and m.start() <= 80:
+        txt = txt[m.end() :]
+    else:
+        p = RE_OBJET_PREAMBULE.match(txt)
+        if p and len(txt) - p.end() >= 12:
+            txt = txt[p.end() :]
+    # couper au premier marqueur de section administrative
+    c = RE_OBJET_COUPE.search(txt)
+    if c and c.start() >= 8:
+        txt = txt[: c.start()]
+    # retirer un préfixe région/commune en capitales resté en tête
+    g = RE_OBJET_GEO.match(txt)
+    if g and g.end() >= 8 and len(txt) - g.end() >= 12:
+        txt = txt[g.end() :]
+    txt = txt.strip(" :.,;-–—")
+    if not txt:
+        txt = brut.strip()
+    # capture ratée : l'objet est resté une rubrique administrative
+    if RE_OBJET_BRUIT.match(txt):
+        return OBJET_INCONNU
+    return txt[:300]
+
 
 MONTANT_MAX = 500_000_000_000  # 500 Mds FCFA — au-delà = colonnes concaténées
 
@@ -101,12 +183,13 @@ def _parse_tableau(t: list) -> dict | None:
     bloc_entete = " ".join(_texte_ligne(r) for r in lignes[:idx_col])
     ref_m = RE_REF.search(bloc_entete)
     reference = ref_m.group(1).strip() if ref_m else None
-    # objet : ce qui suit « pour » dans la référence, sinon le bloc d'en-tête
+    # objet : ce qui suit « pour » dans la référence, sinon le bloc d'en-tête,
+    # puis nettoyage des rubriques administratives accolées
     objet = None
     if reference:
         apres = re.split(r"\bpour\b", bloc_entete, maxsplit=1, flags=re.I)
-        objet = apres[1].strip()[:400] if len(apres) > 1 else reference
-    objet = objet or bloc_entete[:400]
+        objet = apres[1].strip() if len(apres) > 1 else reference
+    objet = nettoyer_objet(objet or bloc_entete)
 
     # attributaire : ligne explicite « Attributaire … pour un montant de (CHIFFRES) »
     # (signal le plus fiable : le montant retenu est entre parenthèses)
