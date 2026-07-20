@@ -121,6 +121,7 @@ class DgcmefCollector(Collector):
         logger.info("%s : %s (%s)", self.slug, titre, pub or "date ?")
         # extraction déterministe des marchés attribués (a_valider) — pas de LLM
         if doc is not None:
+            self.db.commit()  # persiste l'archivage d'abord (doc.id affecté)
             try:
                 from app.extraction.marches import traiter_document
 
@@ -128,3 +129,4 @@ class DgcmefCollector(Collector):
                 logger.info("%s : %d marché(s) attribué(s) extraits de %s", self.slug, n, titre)
             except Exception:
                 logger.exception("%s : extraction des marchés échouée pour %s", self.slug, titre)
+                self.db.rollback()  # le numéro reste archivé, seuls ses marchés sont annulés
