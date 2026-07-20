@@ -26,6 +26,8 @@ def traiter_document(db, doc: Document) -> int:
     """Extrait les marchés attribués d'un Quotidien depuis son PDF archivé."""
     if not doc.fichier:
         return 0
+    from app.extraction.secteurs import secteur_de
+
     marches = extraire_marches(settings.data_dir / doc.fichier)
     for m in marches:
         db.add(
@@ -37,6 +39,7 @@ def traiter_document(db, doc: Document) -> int:
                 mode=m.get("mode"),
                 attributaire=m["attributaire"],
                 montant_fcfa=m["montant_fcfa"],
+                secteur=secteur_de(m["objet"], m["autorite"]),
                 region=m.get("region"),
                 date_attribution=doc.date_publication,
                 score_confiance=None,  # extraction déterministe, pas de score
@@ -52,10 +55,11 @@ def renettoyer_objets() -> int:
     lignes dont l'attributaire est cassé (objet débordé) sont démotées en
     'a_valider' pour revue plutôt que publiées avec un faux attributaire."""
     from app.extraction.marches_tableau import nettoyer_attributaire, nettoyer_objet
+    from app.extraction.secteurs import secteur_de
 
     with SessionLocal() as db:
         marches = db.scalars(select(Marche)).all()
-        obj_mod = att_mod = demotes = 0
+        obj_mod = att_mod = demotes = sect_mod = 0
         for m in marches:
             net_o = nettoyer_objet(m.objet)
             if net_o and net_o != m.objet:
@@ -69,9 +73,13 @@ def renettoyer_objets() -> int:
             elif net_a != m.attributaire:
                 m.attributaire = net_a
                 att_mod += 1
+            sect = secteur_de(m.objet, m.autorite)
+            if sect != m.secteur:
+                m.secteur = sect
+                sect_mod += 1
         db.commit()
         print(
-            f"{obj_mod} objet(s) et {att_mod} attributaire(s) nettoyés ; "
+            f"{obj_mod} objet(s), {att_mod} attributaire(s), {sect_mod} secteur(s) mis à jour ; "
             f"{demotes} ligne(s) cassée(s) démotée(s) en a_valider."
         )
     return 0

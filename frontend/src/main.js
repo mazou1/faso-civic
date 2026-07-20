@@ -15,6 +15,7 @@ const router = createRouter({
     { path: "/textes", name: "textes", component: () => import("./views/TextesView.vue") },
     { path: "/finances", name: "finances", component: () => import("./views/FinancesView.vue") },
     { path: "/marches", name: "marches", component: () => import("./views/MarchesView.vue") },
+    { path: "/marches/statistiques", name: "marches-stats", component: () => import("./views/MarchesStatsView.vue") },
     { path: "/conseils", name: "conseils", component: () => import("./views/ConseilsView.vue") },
     { path: "/conseils/decisions", name: "decisions", component: () => import("./views/DecisionsView.vue") },
     { path: "/conseils/:id(\\d+)", name: "conseil", component: () => import("./views/ConseilDetailView.vue") },

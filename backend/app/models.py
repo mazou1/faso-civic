@@ -310,6 +310,7 @@ class Marche(Base):
     mode: Mapped[str | None] = mapped_column(String(120))  # demande de prix, AOO…
     attributaire: Mapped[str | None] = mapped_column(String(400))  # entreprise retenue
     montant_fcfa: Mapped[int | None] = mapped_column(BigInteger)
+    secteur: Mapped[str | None] = mapped_column(String(60), index=True)  # déduit de l'objet
     region: Mapped[str | None] = mapped_column(String(120))
     date_attribution: Mapped[date | None] = mapped_column(Date)
     score_confiance: Mapped[float | None] = mapped_column(Float)

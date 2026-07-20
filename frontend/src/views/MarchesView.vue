@@ -6,6 +6,11 @@
     (DGCMEF). Chaque marché renvoie au journal officiel dont il est issu.
   </p>
 
+  <nav class="onglets">
+    <router-link to="/marches" class="actif">Liste</router-link>
+    <router-link to="/marches/statistiques">Statistiques</router-link>
+  </nav>
+
   <div v-if="stats" class="grille-tuiles">
     <div class="carte tuile">
       <div class="valeur">{{ fmtFCFA(stats.montant) }}</div>
@@ -34,6 +39,7 @@
     <article v-for="m in marches" :key="m.id" class="item">
       <div class="meta">
         <span class="badge">Marché attribué</span>
+        <span v-if="m.secteur" class="badge-secteur">{{ m.secteur }}</span>
         <span v-if="m.date">Quotidien du {{ formatDate(m.date) }}</span>
         <span v-if="m.autorite">{{ m.autorite }}</span>
       </div>
@@ -127,6 +133,7 @@ onMounted(async () => {
 <style scoped>
 .entete-recherche { align-items: center; }
 .entete-recherche input[type="search"] { flex: 1; max-width: 380px; }
+.badge-secteur { background: var(--series-1-fonce, #0a6b3c); color: #fff; padding: 1px 8px; border-radius: 999px; font-size: 0.72rem; }
 .ref { font-variant-numeric: tabular-nums; }
 .note-methode { color: var(--text-muted); font-size: 0.82rem; margin-top: 16px; }
 </style>

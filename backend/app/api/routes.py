@@ -1343,6 +1343,7 @@ class MarcheOut(BaseModel):
     montant_fcfa: int | None
     autorite: str | None
     objet: str
+    secteur: str | None
     reference: str | None
     date: date | None
     document_id: int
@@ -1354,10 +1355,29 @@ class MarchesPage(BaseModel):
     marches: list[MarcheOut]
 
 
+class CategorieStat(BaseModel):
+    cle: str  # secteur, entreprise ou année
+    montant_fcfa: int
+    nombre: int
+
+
+class MarchesStats(BaseModel):
+    total: int
+    montant_total_fcfa: int
+    nb_entreprises: int
+    annees: list[int]  # années disponibles (pour le filtre)
+    secteurs_dispo: list[str]  # secteurs disponibles (pour le filtre)
+    par_secteur: list[CategorieStat]
+    par_annee: list[CategorieStat]
+    top_entreprises: list[CategorieStat]
+
+
 @router.get("/marches", response_model=MarchesPage)
 def list_marches(
     db: Session = Depends(get_db),
     q: str | None = Query(None, min_length=2, description="Attributaire, autorité ou objet"),
+    secteur: str | None = Query(None, description="Filtrer par secteur déduit"),
+    annee: int | None = Query(None, description="Filtrer par année d'attribution"),
     tri: str = Query("montant", description="montant | date"),
     page: int = Query(1, ge=1),
     par_page: int = Query(20, ge=1, le=100),
@@ -1373,6 +1393,10 @@ def list_marches(
             | Marche.autorite.ilike(motif)
             | Marche.objet.ilike(motif)
         )
+    if secteur:
+        base = base.where(Marche.secteur == secteur)
+    if annee:
+        base = base.where(func.extract("year", Marche.date_attribution) == annee)
     total = db.scalar(select(func.count()).select_from(base.subquery()))
     # somme sur la même sélection filtrée (pas select_from(subquery) : la colonne
     # de l'entité y provoquerait un produit cartésien)
@@ -1394,10 +1418,87 @@ def list_marches(
                 montant_fcfa=m.montant_fcfa,
                 autorite=m.autorite,
                 objet=m.objet,
+                secteur=m.secteur,
                 reference=m.reference,
                 date=m.date_attribution,
                 document_id=m.document_id,
             )
             for m in marches
         ],
+    )
+
+
+@router.get("/marches/stats", response_model=MarchesStats)
+def marches_stats(
+    db: Session = Depends(get_db),
+    secteur: str | None = Query(None, description="Restreindre à un secteur"),
+    annee: int | None = Query(None, description="Restreindre à une année"),
+):
+    """Statistiques agrégées des marchés attribués (validés) : par secteur,
+    par année, top entreprises. Les filtres secteur/année se combinent."""
+    from app.models import Marche
+
+    an = func.extract("year", Marche.date_attribution)
+    montant = func.coalesce(func.sum(Marche.montant_fcfa), 0)
+
+    def filtree(*colonnes):
+        s = select(*colonnes).where(Marche.statut_validation == "valide")
+        if secteur:
+            s = s.where(Marche.secteur == secteur)
+        if annee:
+            s = s.where(an == annee)
+        return s
+
+    total = int(db.scalar(filtree(func.count()).order_by(None)) or 0)
+    montant_total = int(db.scalar(filtree(montant).order_by(None)) or 0)
+    nb_entreprises = int(
+        db.scalar(filtree(func.count(func.distinct(Marche.attributaire))).order_by(None)) or 0
+    )
+
+    # options de filtre : toujours calculées sur l'ensemble validé (pas restreint)
+    base_all = select(Marche).where(Marche.statut_validation == "valide")
+    annees = sorted(
+        {int(a) for a in db.scalars(base_all.with_only_columns(an.distinct()).order_by(None)) if a is not None},
+        reverse=True,
+    )
+    secteurs_dispo = sorted(
+        x for x in db.scalars(
+            base_all.with_only_columns(Marche.secteur).distinct().order_by(None)
+        ) if x
+    )
+
+    def agrege(colonne, limite=None):
+        s = (
+            filtree(colonne.label("cle"), montant.label("m"), func.count().label("n"))
+            .where(colonne.is_not(None))
+            .group_by(colonne)
+            .order_by(montant.desc())
+        )
+        if limite:
+            s = s.limit(limite)
+        from numbers import Number
+
+        def _cle(v):
+            return str(int(v)) if isinstance(v, Number) else str(v)
+
+        return [
+            CategorieStat(cle=_cle(r.cle), montant_fcfa=int(r.m or 0), nombre=int(r.n))
+            for r in db.execute(s)
+        ]
+
+    par_secteur = agrege(Marche.secteur)
+    top_entreprises = agrege(Marche.attributaire, limite=15)
+    par_annee = sorted(
+        agrege(an.label("annee")), key=lambda c: c.cle
+    )
+
+    return MarchesStats(
+        total=total,
+        montant_total_fcfa=montant_total,
+        nb_entreprises=nb_entreprises,
+        annees=annees,
+        secteurs_dispo=secteurs_dispo,
+        par_secteur=par_secteur,
+        par_annee=par_annee,
+        top_entreprises=top_entreprises,
     )
