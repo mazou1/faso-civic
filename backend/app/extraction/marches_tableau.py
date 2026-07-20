@@ -44,9 +44,14 @@ RE_OBJET_COUPE = re.compile(
     r"|quotidien\s+(?:des\s+march[ée]s|n[°o])"
     r"|rmp\s*n[°o]"
     r"|budget\s+pr[ée]visionnel\b"
+    r"|montants?\s+(?:lus|corrig|pr[ée]visionnel|minimum|maximum)"
     r"|bornes?\s+(?:sup|inf)"
+    r"|seuil\s+de\b"
+    r"|moyenne\s+arithm"
+    r"|note\s+pond[ée]r"
+    r"|d[ée]lai\s+d"
     r"|offre\s+anormalement\b"
-    r"|enveloppe\b"
+    r"|envelop"
     r")",
     re.I,
 )
@@ -80,10 +85,11 @@ def nettoyer_objet(brut: str | None) -> str | None:
     if not brut:
         return brut
     txt = re.sub(r"\s+", " ", brut).strip()
-    # préférer le champ explicite « Objet : … » en tête, sinon retirer un
+    # préférer le champ explicite « Objet : … » où qu'il soit dans l'en-tête
+    # (souvent précédé de rubriques administratives), sinon retirer un
     # préambule « DEMANDE DE PRIX N°… relatif à … »
     m = RE_OBJET_ENTETE.search(txt)
-    if m and m.start() <= 80:
+    if m:
         txt = txt[m.end() :]
     else:
         p = RE_OBJET_PREAMBULE.match(txt)
