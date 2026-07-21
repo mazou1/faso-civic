@@ -32,17 +32,66 @@ _INSTIT = [
 def type_institution(nom: str | None, sigle: str | None = None) -> str:
     """ministere | institution | juridiction | etablissement (défaut).
 
-    Un « Ministère … » PORTANT un sigle est en réalité l'établissement/société
-    d'État désigné par ce sigle (artefact de données : son nom a été fixé à celui
-    de son ministère de tutelle). Les vrais ministères n'ont pas de sigle ici.
+    Le nom fait foi. Un « Ministère … » portant un sigle (ONEA, SAMU, ENEF…)
+    reste un ministère : vérifié en base le 2026-07-21, aucun de ces sigles ne
+    désigne une structure par ailleurs et les mandats rattachés sont bien des
+    postes ministériels (directeurs provinciaux, inspecteurs techniques…). Le
+    sigle est du bruit d'extraction — voir `sigle_fiable`.
     """
     n = nom or ""
-    if sigle and re.match(r"^\s*minist[èe]re\b", n, re.I):
-        return "etablissement"
     for code, motif in _INSTIT:
         if motif.search(n):
             return code
     return "etablissement"
+
+
+def sigle_fiable(nom: str | None, sigle: str | None) -> bool:
+    """Un sigle accolé à un nom de ministère provient d'une nomination voisine
+    (« Directeur général de l'ONEA ») et ne désigne pas la structure : on ne
+    l'affiche pas."""
+    return bool(sigle) and not re.match(r"^\s*minist[èe]re\b", nom or "", re.I)
+
+
+# --- portefeuille ministériel -------------------------------------------------
+# Les ministères sont renommés à chaque remaniement (« Ministère de la Santé »
+# → « … de la Santé et de l'Hygiène publique ») et chaque intitulé a créé sa
+# propre structure. On les regroupe sous un portefeuille commun, sans rien
+# fusionner en base : les intitulés successifs restent visibles.
+
+_ARTICLES = re.compile(
+    r"^(?:de(?:s|\s+la|\s+l)?|du|d|l|le|la|les|et|en|aux?|charg[ée]e?s?)$", re.I)
+_ACCENTS = str.maketrans("àâäçéèêëîïôöùûüÿ", "aaaceeeeiioouuuy")
+
+# Mots de tête trop génériques pour identifier seuls un portefeuille : on prend
+# alors les deux premiers mots significatifs (« Enseignement de base » ≠
+# « Enseignement supérieur »).
+_LEADS_AMBIGUS = {
+    "affaires", "action", "developpement", "enseignement",
+    "fonction", "transition", "conseil", "secretariat",
+}
+
+
+def _mots_significatifs(nom: str) -> list[str]:
+    n = re.sub(r"^\s*minist[èe]re\s*", "", nom or "", flags=re.I)
+    # minuscules AVANT le pliage : la table ne couvre que le bas de casse, et
+    # un « É » résiduel serait mangé par le découpage (« Économie » → conomie)
+    n = n.lower().translate(_ACCENTS).replace("’", " ").replace("'", " ")
+    mots = [m for m in re.split(r"[^a-z]+", n) if m]
+    return [m for m in mots if not _ARTICLES.match(m)]
+
+
+def portefeuille(nom: str | None) -> str | None:
+    """Clé de regroupement des intitulés successifs d'un même ministère, ou
+    None hors ministère. Heuristique volontairement prudente : deux intitulés
+    ne sont regroupés que s'ils partagent leur(s) mot(s) de tête."""
+    if type_institution(nom) != "ministere":
+        return None
+    mots = _mots_significatifs(nom or "")
+    if not mots:
+        return None
+    if mots[0] in _LEADS_AMBIGUS and len(mots) > 1:
+        return f"{mots[0]} {mots[1]}"
+    return mots[0]
 
 
 # --- catégorie de fonction ----------------------------------------------------

@@ -9,6 +9,19 @@
       · {{ inst.nb_agents.toLocaleString("fr-FR") }} agent{{ inst.nb_agents > 1 ? "s" : "" }} recensé{{ inst.nb_agents > 1 ? "s" : "" }}
     </p>
 
+    <aside v-if="inst.intitules && inst.intitules.length > 1" class="carte intitules">
+      <h2>Intitulés successifs</h2>
+      <p class="note">
+        Ce portefeuille a été renommé au fil des remaniements. Les agents ci-dessous
+        sont regroupés à travers tous ses intitulés, du plus récent au plus ancien.
+      </p>
+      <ol>
+        <li v-for="(n, idx) in inst.intitules" :key="n">
+          {{ n }}<span v-if="idx === 0" class="courant">intitulé actuel</span>
+        </li>
+      </ol>
+    </aside>
+
     <section v-for="c in inst.categories" :key="c.categorie" class="carte cat">
       <h2>{{ c.categorie }} <span class="n-cat">{{ c.agents.length }}</span></h2>
       <ul class="agents">
@@ -79,6 +92,15 @@ watch(() => route.params.id, charger);
 .fil a:hover { color: var(--accent); }
 .badge-type { background: var(--series-1-fonce, #0a6b3c); color: #fff; padding: 1px 8px; border-radius: 999px; font-size: 0.74rem; }
 .sigle { font-weight: 600; }
+.intitules { margin-bottom: 16px; }
+.intitules h2 { font-size: 0.95rem; margin: 0 0 6px; }
+.intitules .note { color: var(--text-secondary); font-size: 0.85rem; margin: 0 0 8px; }
+.intitules ol { margin: 0; padding-left: 20px; font-size: 0.9rem; }
+.intitules li { margin-bottom: 3px; }
+.courant {
+  margin-left: 8px; padding: 1px 7px; border-radius: 999px; font-size: 0.72rem;
+  background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent);
+}
 .cat { margin-bottom: 16px; }
 .cat h2 { font-size: 1rem; margin: 0 0 12px; display: flex; align-items: baseline; gap: 8px; }
 .n-cat { color: var(--text-muted); font-size: 0.82rem; font-weight: 400; }

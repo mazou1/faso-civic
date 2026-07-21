@@ -681,6 +681,9 @@ class InstitutionOut(BaseModel):
     type: str
     groupe: str
     nb_agents: int
+    # intitulés successifs regroupés sous ce portefeuille, du plus récent au
+    # plus ancien ; `nom` reprend le premier. Un seul élément = pas de renommage.
+    intitules: list[str] = []
 
 
 class InstitutionsPage(BaseModel):
@@ -696,40 +699,89 @@ def annuaire_institutions(
 ):
     """Index des institutions de l'État (structures canoniques ayant au moins un
     agent recensé), avec type déduit et effectif — pour naviguer l'annuaire par
-    institution plutôt qu'en liste plate."""
+    institution plutôt qu'en liste plate.
+
+    Les intitulés successifs d'un même ministère (renommages de remaniement)
+    sont regroupés sous une seule entrée, celle du dernier intitulé en date.
+    """
     from sqlalchemy.orm import aliased
 
-    from app.annuaire_taxonomie import GROUPES_INSTITUTION, type_institution
+    from app.annuaire_taxonomie import (
+        GROUPES_INSTITUTION,
+        portefeuille,
+        sigle_fiable,
+        type_institution,
+    )
 
     canon = aliased(Structure)
     cid = func.coalesce(Structure.canonique_id, Structure.id)
-    stmt = (
+    rows = db.execute(
         select(
             canon.id,
             canon.nom,
             canon.sigle,
             func.count(func.distinct(Mandat.personne_id)).label("n"),
+            func.max(Mandat.date_debut).label("dernier"),
         )
         .select_from(Mandat)
         .join(Structure, Structure.id == Mandat.structure_id)
         .join(canon, canon.id == cid)
         .group_by(canon.id, canon.nom, canon.sigle)
-    )
-    if q:
-        motif = f"%{q}%"
-        stmt = stmt.where(canon.nom.ilike(motif) | canon.sigle.ilike(motif))
-    rows = db.execute(stmt).all()
+    ).all()
+
+    # regroupement des intitulés successifs ; hors ministère, une structure =
+    # une entrée (clé propre à son id)
+    groupes: dict[tuple, list] = {}
+    for r in rows:
+        cle = portefeuille(r.nom) or f"#{r.id}"
+        groupes.setdefault(cle, []).append(r)
+
+    # effectifs par portefeuille : une même personne peut servir sous deux
+    # intitulés successifs, la somme des effectifs la compterait deux fois
+    agents_par_struct: dict[int, set[int]] = {}
+    if any(len(v) > 1 for v in groupes.values()):
+        for sid, pid in db.execute(
+            select(cid, Mandat.personne_id)
+            .distinct()
+            .select_from(Mandat)
+            .join(Structure, Structure.id == Mandat.structure_id)
+            .join(canon, canon.id == cid)
+            .where(canon.nom.ilike("minist%"))
+        ).all():
+            agents_par_struct.setdefault(sid, set()).add(pid)
 
     libelles = dict(GROUPES_INSTITUTION)
     institutions = []
-    for r in rows:
-        t = type_institution(r.nom, r.sigle)
+    for variantes in groupes.values():
+        # l'intitulé courant est celui de la nomination la plus récente
+        variantes.sort(key=lambda r: (r.dernier or date.min, r.n), reverse=True)
+        principal = variantes[0]
+        t = type_institution(principal.nom, principal.sigle)
+        if len(variantes) > 1:
+            agents = set()
+            for v in variantes:
+                agents |= agents_par_struct.get(v.id, set())
+            nb = len(agents)
+        else:
+            nb = int(principal.n)
         institutions.append(
             InstitutionOut(
-                id=r.id, nom=r.nom, sigle=r.sigle, type=t,
-                groupe=libelles.get(t, "Autres"), nb_agents=int(r.n),
+                id=principal.id,
+                nom=principal.nom,
+                sigle=principal.sigle if sigle_fiable(principal.nom, principal.sigle) else None,
+                type=t,
+                groupe=libelles.get(t, "Autres"),
+                nb_agents=nb,
+                intitules=[v.nom for v in variantes],
             )
         )
+    if q:
+        terme = q.lower()
+        institutions = [
+            i for i in institutions
+            if any(terme in n.lower() for n in i.intitules)
+            or (i.sigle and terme in i.sigle.lower())
+        ]
     # tri : effectif décroissant, puis nom
     institutions.sort(key=lambda i: (-i.nb_agents, i.nom.lower()))
     return InstitutionsPage(
@@ -760,6 +812,7 @@ class InstitutionDetail(BaseModel):
     type: str
     nb_agents: int
     categories: list[CategorieAgents]
+    intitules: list[str] = []
 
 
 @router.get("/annuaire/institutions/{struct_id}", response_model=InstitutionDetail)
@@ -769,6 +822,8 @@ def annuaire_institution(struct_id: int, db: Session = Depends(get_db)):
     from app.annuaire_taxonomie import (
         CATEGORIES_FONCTION,
         categorie_fonction,
+        portefeuille,
+        sigle_fiable,
         type_institution,
     )
 
@@ -780,6 +835,32 @@ def annuaire_institution(struct_id: int, db: Session = Depends(get_db)):
         inst = db.get(Structure, inst.canonique_id) or inst
 
     cid = func.coalesce(Structure.canonique_id, Structure.id)
+    # un ministère renommé s'étale sur plusieurs structures : on réunit tous les
+    # intitulés du portefeuille, le plus récent servant de titre
+    ids = [inst.id]
+    intitules = [inst.nom]
+    cle = portefeuille(inst.nom)
+    if cle:
+        variantes = db.execute(
+            select(
+                Structure.id,
+                Structure.nom,
+                Structure.sigle,
+                func.max(Mandat.date_debut).label("dernier"),
+                func.count(Mandat.id).label("n"),
+            )
+            .select_from(Structure)
+            .join(Mandat, Mandat.structure_id == Structure.id)
+            .where(Structure.canonique_id.is_(None), Structure.nom.ilike("minist%"))
+            .group_by(Structure.id, Structure.nom, Structure.sigle)
+        ).all()
+        fratrie = [v for v in variantes if portefeuille(v.nom) == cle]
+        if len(fratrie) > 1:
+            fratrie.sort(key=lambda v: (v.dernier or date.min, v.n), reverse=True)
+            ids = [v.id for v in fratrie]
+            intitules = [v.nom for v in fratrie]
+            inst = db.get(Structure, fratrie[0].id) or inst
+
     rows = db.execute(
         select(
             Mandat.personne_id,
@@ -794,7 +875,7 @@ def annuaire_institution(struct_id: int, db: Session = Depends(get_db)):
         .join(Structure, Structure.id == Mandat.structure_id)
         .outerjoin(Nomination, Nomination.id == Mandat.nomination_debut_id)
         .outerjoin(Document, Document.id == Nomination.document_id)
-        .where(cid == inst.id)
+        .where(cid.in_(ids))
         .order_by(Mandat.poste, Personne.nom_complet)
     ).all()
 
@@ -821,10 +902,11 @@ def annuaire_institution(struct_id: int, db: Session = Depends(get_db)):
     return InstitutionDetail(
         id=inst.id,
         nom=inst.nom,
-        sigle=inst.sigle,
+        sigle=inst.sigle if sigle_fiable(inst.nom, inst.sigle) else None,
         type=type_institution(inst.nom, inst.sigle),
         nb_agents=len(personnes),
         categories=categories,
+        intitules=intitules,
     )
 
 

@@ -29,7 +29,13 @@
         >
           <span class="inst-nom">{{ i.sigle || i.nom }}</span>
           <span v-if="i.sigle" class="inst-sous">{{ i.nom }}</span>
-          <span class="inst-n">{{ i.nb_agents }} agent{{ i.nb_agents > 1 ? "s" : "" }}</span>
+          <span class="inst-n">
+            {{ i.nb_agents }} agent{{ i.nb_agents > 1 ? "s" : "" }}
+            <span v-if="i.intitules && i.intitules.length > 1" class="inst-renom"
+              :title="i.intitules.join(' · ')">
+              · {{ i.intitules.length }} intitulés
+            </span>
+          </span>
         </router-link>
       </div>
     </section>
@@ -62,7 +68,13 @@
         >
           <span class="inst-nom">{{ i.sigle || i.nom }}</span>
           <span v-if="i.sigle" class="inst-sous">{{ i.nom }}</span>
-          <span class="inst-n">{{ i.nb_agents }} agent{{ i.nb_agents > 1 ? "s" : "" }}</span>
+          <span class="inst-n">
+            {{ i.nb_agents }} agent{{ i.nb_agents > 1 ? "s" : "" }}
+            <span v-if="i.intitules && i.intitules.length > 1" class="inst-renom"
+              :title="i.intitules.join(' · ')">
+              · {{ i.intitules.length }} intitulés
+            </span>
+          </span>
         </router-link>
       </div>
     </section>
@@ -158,6 +170,7 @@ onMounted(chargerIndex);
 .inst-nom { font-weight: 600; color: var(--text-primary); }
 .inst-sous { font-size: 0.78rem; color: var(--text-secondary); line-height: 1.3; }
 .inst-n { font-size: 0.8rem; color: var(--accent); margin-top: 2px; }
+.inst-renom { color: var(--text-muted); }
 .grille-mandats { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
 .mandat { display: flex; gap: 14px; align-items: flex-start; padding: 14px 16px; }
 .avatar {
