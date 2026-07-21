@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
-from sqlalchemy import func, select, text
+from sqlalchemy import case, func, or_, select, text
 from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
@@ -684,12 +684,71 @@ class InstitutionOut(BaseModel):
     # intitulés successifs regroupés sous ce portefeuille, du plus récent au
     # plus ancien ; `nom` reprend le premier. Un seul élément = pas de renommage.
     intitules: list[str] = []
+    # vrai si `nom` vient du gouvernement en vigueur, faux s'il est seulement
+    # le dernier intitulé attesté en nomination
+    intitule_officiel: bool = False
 
 
 class InstitutionsPage(BaseModel):
     total_institutions: int
     total_agents: int
     institutions: list[InstitutionOut]
+
+
+def _intitules_courants(db: Session) -> dict[str, str]:
+    """Intitulé en vigueur de chaque portefeuille, d'après le trombinoscope
+    officiel du gouvernement — les noms reconstitués depuis les nominations
+    retardent d'un remaniement (« Défense et Anciens Combattants » pour ce qui
+    est aujourd'hui le ministère de la Guerre et de la Défense patriotique)."""
+    from app.annuaire_taxonomie import intitule_officiel, portefeuille
+    from app.models import MembreGouvernement
+
+    courants: dict[str, str] = {}
+    postes = db.execute(
+        select(MembreGouvernement.poste).where(
+            MembreGouvernement.actif.is_(True),
+            MembreGouvernement.statut_validation == "valide",
+        )
+    ).scalars()
+    for poste in postes:
+        nom = intitule_officiel(poste)
+        if not nom:
+            continue
+        cle = portefeuille(nom, "ministere")
+        if cle:
+            courants[cle] = nom
+    return courants
+
+
+def _part_conseil_administration(db: Session) -> dict[int, float]:
+    """Pour chaque structure canonique nommée « Ministère … » mais portant un
+    sigle, la part de ses mandats qui sont des sièges au conseil
+    d'administration de l'entité du sigle. À 100 %, la structure EST cette
+    entité et non le ministère — voir `annuaire_taxonomie.type_institution`.
+
+    Le ratio porte sur le groupe canonique, puisque c'est lui que l'annuaire
+    affiche : le mesurer sur une variante fusionnée le rendrait aveugle."""
+    from sqlalchemy.orm import aliased
+
+    canon = aliased(Structure)
+    cid = func.coalesce(Structure.canonique_id, Structure.id)
+    est_ca = or_(
+        Mandat.poste.ilike("%conseil d%administration%"),
+        Mandat.poste.ilike(func.concat("%", canon.sigle, "%")),
+    )
+    rows = db.execute(
+        select(
+            canon.id,
+            func.count().label("n"),
+            func.sum(case((est_ca, 1), else_=0)).label("ca"),
+        )
+        .select_from(Mandat)
+        .join(Structure, Structure.id == Mandat.structure_id)
+        .join(canon, canon.id == cid)
+        .where(canon.sigle.is_not(None), canon.nom.ilike("minist%"))
+        .group_by(canon.id)
+    ).all()
+    return {r.id: (r.ca or 0) / r.n for r in rows if r.n}
 
 
 @router.get("/annuaire/institutions", response_model=InstitutionsPage)
@@ -708,6 +767,7 @@ def annuaire_institutions(
 
     from app.annuaire_taxonomie import (
         GROUPES_INSTITUTION,
+        meme_intitule,
         portefeuille,
         sigle_fiable,
         type_institution,
@@ -731,9 +791,11 @@ def annuaire_institutions(
 
     # regroupement des intitulés successifs ; hors ministère, une structure =
     # une entrée (clé propre à son id)
-    groupes: dict[tuple, list] = {}
+    part_ca = _part_conseil_administration(db)
+    types = {r.id: type_institution(r.nom, r.sigle, part_ca.get(r.id)) for r in rows}
+    groupes: dict[str, list] = {}
     for r in rows:
-        cle = portefeuille(r.nom) or f"#{r.id}"
+        cle = portefeuille(r.nom, types[r.id]) or f"#{r.id}"
         groupes.setdefault(cle, []).append(r)
 
     # effectifs par portefeuille : une même personne peut servir sous deux
@@ -751,12 +813,19 @@ def annuaire_institutions(
             agents_par_struct.setdefault(sid, set()).add(pid)
 
     libelles = dict(GROUPES_INSTITUTION)
+    courants = _intitules_courants(db)
     institutions = []
-    for variantes in groupes.values():
-        # l'intitulé courant est celui de la nomination la plus récente
+    for cle, variantes in groupes.items():
+        # à défaut d'intitulé officiel, le plus récemment attesté en nomination
         variantes.sort(key=lambda r: (r.dernier or date.min, r.n), reverse=True)
         principal = variantes[0]
-        t = type_institution(principal.nom, principal.sigle)
+        t = types[principal.id]
+        intitules = [v.nom for v in variantes]
+        officiel = courants.get(cle)
+        if officiel:
+            intitules = [officiel] + [
+                n for n in intitules if not meme_intitule(n, officiel)
+            ]
         if len(variantes) > 1:
             agents = set()
             for v in variantes:
@@ -767,12 +836,17 @@ def annuaire_institutions(
         institutions.append(
             InstitutionOut(
                 id=principal.id,
-                nom=principal.nom,
-                sigle=principal.sigle if sigle_fiable(principal.nom, principal.sigle) else None,
+                nom=intitules[0],
+                sigle=(
+                    principal.sigle
+                    if sigle_fiable(principal.nom, principal.sigle, part_ca.get(principal.id))
+                    else None
+                ),
                 type=t,
                 groupe=libelles.get(t, "Autres"),
                 nb_agents=nb,
-                intitules=[v.nom for v in variantes],
+                intitules=intitules,
+                intitule_officiel=bool(officiel),
             )
         )
     if q:
@@ -813,6 +887,7 @@ class InstitutionDetail(BaseModel):
     nb_agents: int
     categories: list[CategorieAgents]
     intitules: list[str] = []
+    intitule_officiel: bool = False
 
 
 @router.get("/annuaire/institutions/{struct_id}", response_model=InstitutionDetail)
@@ -822,6 +897,7 @@ def annuaire_institution(struct_id: int, db: Session = Depends(get_db)):
     from app.annuaire_taxonomie import (
         CATEGORIES_FONCTION,
         categorie_fonction,
+        meme_intitule,
         portefeuille,
         sigle_fiable,
         type_institution,
@@ -839,7 +915,9 @@ def annuaire_institution(struct_id: int, db: Session = Depends(get_db)):
     # intitulés du portefeuille, le plus récent servant de titre
     ids = [inst.id]
     intitules = [inst.nom]
-    cle = portefeuille(inst.nom)
+    officiel = None
+    part_ca = _part_conseil_administration(db)
+    cle = portefeuille(inst.nom, type_institution(inst.nom, inst.sigle, part_ca.get(inst.id)))
     if cle:
         variantes = db.execute(
             select(
@@ -854,12 +932,21 @@ def annuaire_institution(struct_id: int, db: Session = Depends(get_db)):
             .where(Structure.canonique_id.is_(None), Structure.nom.ilike("minist%"))
             .group_by(Structure.id, Structure.nom, Structure.sigle)
         ).all()
-        fratrie = [v for v in variantes if portefeuille(v.nom) == cle]
+        fratrie = [
+            v for v in variantes
+            if portefeuille(v.nom, type_institution(v.nom, v.sigle, part_ca.get(v.id))) == cle
+        ]
         if len(fratrie) > 1:
             fratrie.sort(key=lambda v: (v.dernier or date.min, v.n), reverse=True)
             ids = [v.id for v in fratrie]
             intitules = [v.nom for v in fratrie]
             inst = db.get(Structure, fratrie[0].id) or inst
+        # le trombinoscope officiel prime sur le nom reconstitué des nominations
+        officiel = _intitules_courants(db).get(cle)
+        if officiel:
+            intitules = [officiel] + [
+                n for n in intitules if not meme_intitule(n, officiel)
+            ]
 
     rows = db.execute(
         select(
@@ -901,12 +988,13 @@ def annuaire_institution(struct_id: int, db: Session = Depends(get_db)):
     ]
     return InstitutionDetail(
         id=inst.id,
-        nom=inst.nom,
-        sigle=inst.sigle if sigle_fiable(inst.nom, inst.sigle) else None,
-        type=type_institution(inst.nom, inst.sigle),
+        nom=intitules[0],
+        sigle=inst.sigle if sigle_fiable(inst.nom, inst.sigle, part_ca.get(inst.id)) else None,
+        type=type_institution(inst.nom, inst.sigle, part_ca.get(inst.id)),
         nb_agents=len(personnes),
         categories=categories,
         intitules=intitules,
+        intitule_officiel=bool(officiel),
     )
 
 

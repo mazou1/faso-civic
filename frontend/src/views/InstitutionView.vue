@@ -14,10 +14,21 @@
       <p class="note">
         Ce portefeuille a été renommé au fil des remaniements. Les agents ci-dessous
         sont regroupés à travers tous ses intitulés, du plus récent au plus ancien.
+        <template v-if="inst.intitule_officiel">
+          L'intitulé en tête est celui du gouvernement en fonction ; les suivants sont
+          ceux sous lesquels les nominations ont été publiées.
+        </template>
+        <template v-else>
+          Ce portefeuille n'apparaît pas dans le gouvernement en fonction : l'intitulé
+          en tête est le dernier attesté par une nomination.
+        </template>
       </p>
       <ol>
         <li v-for="(n, idx) in inst.intitules" :key="n">
-          {{ n }}<span v-if="idx === 0" class="courant">intitulé actuel</span>
+          {{ n }}
+          <span v-if="idx === 0" class="courant">
+            {{ inst.intitule_officiel ? "intitulé en vigueur" : "dernier intitulé attesté" }}
+          </span>
         </li>
       </ol>
     </aside>

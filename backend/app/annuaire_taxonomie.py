@@ -29,27 +29,50 @@ _INSTIT = [
 ]
 
 
-def type_institution(nom: str | None, sigle: str | None = None) -> str:
+# Part des mandats qui doivent être des sièges au CA de l'entité désignée par
+# le sigle pour que la structure SOIT cette entité plutôt que le ministère.
+SEUIL_CONSEIL_ADMINISTRATION = 0.9
+
+
+def type_institution(
+    nom: str | None, sigle: str | None = None, part_ca: float | None = None
+) -> str:
     """ministere | institution | juridiction | etablissement (défaut).
 
-    Le nom fait foi. Un « Ministère … » portant un sigle (ONEA, SAMU, ENEF…)
-    reste un ministère : vérifié en base le 2026-07-21, aucun de ces sigles ne
-    désigne une structure par ailleurs et les mandats rattachés sont bien des
-    postes ministériels (directeurs provinciaux, inspecteurs techniques…). Le
-    sigle est du bruit d'extraction — voir `sigle_fiable`.
+    Le nom fait foi, à une exception près. Un « Ministère … » portant un sigle
+    est presque toujours le ministère, le sigle étant recopié d'une nomination
+    voisine : vérifié en base le 2026-07-21, aucun de ces sigles ne désigne une
+    structure par ailleurs et les mandats sont des postes ministériels variés
+    (directeurs provinciaux, inspecteurs techniques…).
+
+    Mais quand TOUS les mandats de la structure sont des sièges au conseil
+    d'administration de l'entité du sigle, c'est l'inverse : la structure est
+    cette entité et c'est son nom qui a été recopié du ministère de tutelle
+    (cas SOGEMAB, seule à 100 % sur les 14 structures concernées ; les autres
+    plafonnent à 62 %). `part_ca` porte ce ratio, mesuré sur les mandats.
     """
     n = nom or ""
+    if (
+        sigle
+        and part_ca is not None
+        and part_ca >= SEUIL_CONSEIL_ADMINISTRATION
+        and re.match(r"^\s*minist[èe]re\b", n, re.I)
+    ):
+        return "etablissement"
     for code, motif in _INSTIT:
         if motif.search(n):
             return code
     return "etablissement"
 
 
-def sigle_fiable(nom: str | None, sigle: str | None) -> bool:
+def sigle_fiable(
+    nom: str | None, sigle: str | None, part_ca: float | None = None
+) -> bool:
     """Un sigle accolé à un nom de ministère provient d'une nomination voisine
     (« Directeur général de l'ONEA ») et ne désigne pas la structure : on ne
-    l'affiche pas."""
-    return bool(sigle) and not re.match(r"^\s*minist[èe]re\b", nom or "", re.I)
+    l'affiche pas — sauf si les mandats montrent que la structure est bien
+    l'entité du sigle."""
+    return bool(sigle) and type_institution(nom, sigle, part_ca) != "ministere"
 
 
 # --- portefeuille ministériel -------------------------------------------------
@@ -80,18 +103,94 @@ def _mots_significatifs(nom: str) -> list[str]:
     return [m for m in mots if not _ARTICLES.match(m)]
 
 
-def portefeuille(nom: str | None) -> str | None:
+# Renommages que le nom seul ne rattrape pas (remaniements de 2024-2026, dont
+# les intitulés « révolutionnaires » de janvier 2026). Chaque rapprochement est
+# établi sur deux signaux mesurés en base le 2026-07-21 : le nombre d'agents
+# communs aux deux intitulés, et des plages de nominations qui se succèdent
+# sans se chevaucher. Les intitulés successifs restent affichés sur la fiche.
+#
+# Écarté faute de preuve : « Guerre et Défense patriotique » ↔ « Défense et
+# Anciens Combattants » — 0 agent commun et des plages qui se chevauchent
+# depuis 2023 (la structure porteuse est en fait le CA de la SOGEMAB).
+_ALIAS_PORTEFEUILLE = {
+    # « Défense et Anciens Combattants » → « Guerre et Défense patriotique »,
+    # intitulé du gouvernement en vigueur (trombinoscope de janvier 2026). Le
+    # rapprochement ne ressort PAS des agents communs : la seule structure
+    # portant déjà le nouveau nom est en fait le CA de la SOGEMAB.
+    "defense": "guerre",
+    # 16 agents communs, Infrastructures s'arrête 10/2025 → 02/2026
+    "construction": "infrastructures",   # « Construction de la Patrie »
+    # 10 agents communs avec « Construction de la Patrie », fin 05/2024
+    "urbanisme": "infrastructures",
+    # 14 agents communs, fin 07/2024 → reprise 08/2024
+    "developpement industriel": "industrie",
+    # 7 agents communs, Fonction publique s'arrête 11/2025 → 01/2026
+    "serviteurs": "fonction publique",   # « Serviteurs du Peuple »
+    # chaîne Solidarité (fin 06/2024) → Action humanitaire (fin 12/2025) →
+    # Famille (depuis 02/2026) ; 14 puis 9 agents communs
+    "action humanitaire": "solidarite",
+    "famille": "solidarite",
+}
+
+
+# Postes du gouvernement qui ne désignent pas un ministère de plein exercice
+_POSTE_HORS_MINISTERE = re.compile(
+    r"d[ée]l[ée]gu[ée]|pr[ée]sident\s+du\s+faso|premier\s+minist|"
+    r"secr[ée]taire\s+g[ée]n[ée]ral\s+du\s+gouvernement|direct(?:eur|rice)\s+de\s+cabinet",
+    re.I,
+)
+
+
+def intitule_officiel(poste: str | None) -> str | None:
+    """Intitulé du ministère porté par un membre du gouvernement, ou None si le
+    poste n'en désigne pas un.
+
+    Les noms tirés des nominations en Conseil des ministres retardent d'un
+    remaniement : le trombinoscope officiel fait foi pour l'intitulé courant.
+    « Ministre d'État, Ministre de la Guerre et de la Défense patriotique »
+    → « Ministère de la Guerre et de la Défense patriotique ».
+    """
+    if not poste or _POSTE_HORS_MINISTERE.search(poste):
+        return None
+    # on garde la dernière accroche « Ministre de… » : « Ministre d'État,
+    # Ministre de X » désigne le portefeuille X
+    accroches = list(re.finditer(r"\bministre\s+(?=d)", poste, re.I))
+    if not accroches:
+        return None
+    reste = poste[accroches[-1].end():]
+    reste = re.sub(r",\s*porte-parole.*$", "", reste, flags=re.I).strip(" ,")
+    return f"Ministère {reste}" if reste else None
+
+
+def meme_intitule(a: str | None, b: str | None) -> bool:
+    """Deux écritures du même intitulé. Le trombinoscope et les comptes rendus
+    ne s'accordent ni sur l'apostrophe typographique ni sur les capitales
+    (« des Langues nationales » / « des langues nationales »)."""
+    def normaliser(s: str | None) -> str:
+        s = (s or "").lower().replace("’", "'")
+        return re.sub(r"\s+", " ", s).strip(" .")
+
+    return normaliser(a) == normaliser(b)
+
+
+def portefeuille(nom: str | None, type_deduit: str | None = None) -> str | None:
     """Clé de regroupement des intitulés successifs d'un même ministère, ou
     None hors ministère. Heuristique volontairement prudente : deux intitulés
-    ne sont regroupés que s'ils partagent leur(s) mot(s) de tête."""
-    if type_institution(nom) != "ministere":
+    ne sont regroupés que s'ils partagent leur(s) mot(s) de tête — les cas que
+    le nom ne rattrape pas passent par `_ALIAS_PORTEFEUILLE`.
+
+    `type_deduit` évite de recalculer le type quand l'appelant le connaît (et
+    de perdre au passage le correctif porté par `part_ca`)."""
+    if (type_deduit or type_institution(nom)) != "ministere":
         return None
     mots = _mots_significatifs(nom or "")
     if not mots:
         return None
     if mots[0] in _LEADS_AMBIGUS and len(mots) > 1:
-        return f"{mots[0]} {mots[1]}"
-    return mots[0]
+        cle = f"{mots[0]} {mots[1]}"
+    else:
+        cle = mots[0]
+    return _ALIAS_PORTEFEUILLE.get(cle, cle)
 
 
 # --- catégorie de fonction ----------------------------------------------------

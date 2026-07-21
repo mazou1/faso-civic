@@ -2,7 +2,12 @@
 
 import pytest
 
-from app.annuaire_taxonomie import portefeuille, sigle_fiable, type_institution
+from app.annuaire_taxonomie import (
+    intitule_officiel,
+    portefeuille,
+    sigle_fiable,
+    type_institution,
+)
 
 
 @pytest.mark.parametrize(
@@ -18,6 +23,89 @@ from app.annuaire_taxonomie import portefeuille, sigle_fiable, type_institution
 )
 def test_type_institution(nom, sigle, attendu):
     assert type_institution(nom, sigle) == attendu
+
+
+def test_structure_dont_tous_les_mandats_sont_le_ca_du_sigle():
+    """Cas SOGEMAB : le nom du ministère a été recopié sur l'entité, pas
+    l'inverse. Seule une structure à ~100 % de sièges au CA bascule."""
+    nom, sigle = "Ministère de la Guerre et de la Défense patriotique", "SOGEMAB"
+    assert type_institution(nom, sigle, part_ca=1.0) == "etablissement"
+    assert sigle_fiable(nom, sigle, part_ca=1.0)
+    # 62 % = le plus haut ratio des structures qui sont bien des ministères
+    assert type_institution(nom, sigle, part_ca=0.62) == "ministere"
+    assert type_institution(nom, sigle, part_ca=None) == "ministere"
+
+
+def test_portefeuille_ignore_une_structure_requalifiee():
+    nom = "Ministère de la Guerre et de la Défense patriotique"
+    assert portefeuille(nom, type_deduit="etablissement") is None
+    assert portefeuille(nom, type_deduit="ministere") == "guerre"
+
+
+@pytest.mark.parametrize(
+    "a,b",
+    [
+        (
+            "Ministère de la Construction de la Patrie",
+            "Ministère des Infrastructures et du Désenclavement",
+        ),
+        (
+            "Ministère de la Construction de la Patrie",
+            "Ministère de l’Urbanisme, des Affaires foncières et de l’Habitat",
+        ),
+        (
+            "Ministère de l’Industrie, du Commerce et de l’Artisanat",
+            "Ministère du Développement industriel, du Commerce et de l’Artisanat",
+        ),
+        (
+            "Ministère des Serviteurs du Peuple",
+            "Ministère de la Fonction publique, du Travail et de la Protection sociale",
+        ),
+        (
+            "Ministère de la Famille et de la Solidarité",
+            "Ministère de l'Action humanitaire et de la solidarité nationale",
+        ),
+        (
+            "Ministère de la Famille et de la Solidarité",
+            "Ministère de la Solidarité, de l’Action humanitaire, de la Réconciliation nationale",
+        ),
+    ],
+)
+def test_alias_de_renommage(a, b):
+    assert portefeuille(a) == portefeuille(b) is not None
+
+
+def test_defense_rattachee_a_guerre():
+    """Intitulé du gouvernement en vigueur (trombinoscope de janvier 2026)."""
+    assert portefeuille("Ministère de la Guerre et de la Défense patriotique") == portefeuille(
+        "Ministère de la Défense et des Anciens Combattants"
+    )
+
+
+@pytest.mark.parametrize(
+    "poste,attendu",
+    [
+        (
+            "Ministre d'État, Ministre de la Guerre et de la Défense patriotique",
+            "Ministère de la Guerre et de la Défense patriotique",
+        ),
+        ("Ministre de la Justice", "Ministère de la Justice"),
+        ("Ministre des Serviteurs du Peuple", "Ministère des Serviteurs du Peuple"),
+        (
+            "Ministre de la Communication, de la Culture, des Arts et du Tourisme, "
+            "Porte-parole du Gouvernement",
+            "Ministère de la Communication, de la Culture, des Arts et du Tourisme",
+        ),
+        # postes qui ne sont pas des ministères de plein exercice
+        ("Président du Faso, Chef de l'État", None),
+        ("Premier ministre, Chef du Gouvernement", None),
+        ("Ministre déléguée auprès du Ministre de l'Économie et des Finances, chargée du Budget", None),
+        ("Ministre Secrétaire général du Gouvernement et du Conseil des ministres", None),
+        ("Ministre Directeur de Cabinet du Président du Faso", None),
+    ],
+)
+def test_intitule_officiel(poste, attendu):
+    assert intitule_officiel(poste) == attendu
 
 
 def test_sigle_parasite_non_affiche():
@@ -60,8 +148,8 @@ def test_intitules_successifs_regroupes(a, b):
             "Ministère de l’Enseignement supérieur, de la Recherche et de l’Innovation",
         ),
         (
-            "Ministère de l’Industrie, du Commerce et de l’Artisanat",
-            "Ministère du Développement industriel, du Commerce et de l’Artisanat",
+            "Ministère de la Santé",
+            "Ministère de la Sécurité",
         ),
     ],
 )
