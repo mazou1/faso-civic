@@ -6,8 +6,14 @@
     <p class="sous-titre">
       <span class="badge-type">{{ libelleType(inst.type) }}</span>
       <span v-if="inst.sigle" class="sigle">{{ inst.nom }}</span>
-      · {{ inst.nb_agents.toLocaleString("fr-FR") }} agent{{ inst.nb_agents > 1 ? "s" : "" }} recensé{{ inst.nb_agents > 1 ? "s" : "" }}
+      · {{ inst.nb_agents.toLocaleString("fr-FR") }} en fonction<template v-if="inst.nb_anciens">
+        · {{ inst.nb_anciens.toLocaleString("fr-FR") }} ancien{{ inst.nb_anciens > 1 ? "s" : "" }}</template>
     </p>
+
+    <label v-if="inst.nb_anciens" class="bascule-anciens">
+      <input type="checkbox" v-model="montrerAnciens" />
+      Afficher les anciens titulaires
+    </label>
 
     <aside v-if="inst.intitules && inst.intitules.length > 1" class="carte intitules">
       <h2>Intitulés successifs</h2>
@@ -33,17 +39,19 @@
       </ol>
     </aside>
 
-    <section v-for="c in inst.categories" :key="c.categorie" class="carte cat">
+    <section v-for="c in categoriesAffichees" :key="c.categorie" class="carte cat">
       <h2>{{ c.categorie }} <span class="n-cat">{{ c.agents.length }}</span></h2>
       <ul class="agents">
-        <li v-for="(a, idx) in c.agents" :key="a.personne_id + '-' + idx">
+        <li v-for="(a, idx) in c.agents" :key="a.personne_id + '-' + idx" :class="{ ancien: !a.en_fonction }">
           <div class="avatar">{{ initiales(a.personne) }}</div>
           <div class="corps">
             <router-link class="nom" :to="`/personnes/${a.personne_id}`">{{ a.personne }}</router-link>
             <span v-if="a.matricule" class="matricule">Mle {{ a.matricule }}</span>
+            <span v-if="!a.en_fonction" class="badge-ancien">Ancien</span>
             <div class="poste">{{ a.poste }}</div>
             <div class="dates" v-if="a.date_debut">
-              Depuis le {{ formatDate(a.date_debut) }}
+              <template v-if="a.en_fonction">En poste depuis le {{ formatDate(a.date_debut) }}</template>
+              <template v-else>En poste du {{ formatDate(a.date_debut) }} au {{ formatDate(a.date_fin) }}</template>
               <a v-if="a.document_url" :href="a.document_url" target="_blank" rel="noopener"> · compte rendu →</a>
             </div>
           </div>
@@ -57,13 +65,23 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { apiGet } from "../api";
 
 const route = useRoute();
 const inst = ref(null);
 const chargement = ref(false);
+const montrerAnciens = ref(false);
+
+// masque les anciens titulaires par défaut ; retire les catégories vidées
+const categoriesAffichees = computed(() => {
+  if (!inst.value) return [];
+  if (montrerAnciens.value) return inst.value.categories;
+  return inst.value.categories
+    .map((c) => ({ categorie: c.categorie, agents: c.agents.filter((a) => a.en_fonction) }))
+    .filter((c) => c.agents.length);
+});
 
 const TYPES = {
   ministere: "Ministère",
@@ -103,6 +121,16 @@ watch(() => route.params.id, charger);
 .fil a:hover { color: var(--accent); }
 .badge-type { background: var(--series-1-fonce, #0a6b3c); color: #fff; padding: 1px 8px; border-radius: 999px; font-size: 0.74rem; }
 .sigle { font-weight: 600; }
+.bascule-anciens {
+  display: inline-flex; align-items: center; gap: 6px; margin-bottom: 14px;
+  font-size: 0.85rem; color: var(--text-secondary); cursor: pointer;
+}
+.badge-ancien {
+  align-self: flex-start; margin: 1px 0; padding: 0 7px; border-radius: 999px;
+  font-size: 0.68rem; background: color-mix(in srgb, var(--text-muted) 22%, transparent);
+  color: var(--text-secondary);
+}
+.agents li.ancien { opacity: 0.62; }
 .intitules { margin-bottom: 16px; }
 .intitules h2 { font-size: 0.95rem; margin: 0 0 6px; }
 .intitules .note { color: var(--text-secondary); font-size: 0.85rem; margin: 0 0 8px; }

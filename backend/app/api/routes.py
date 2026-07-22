@@ -780,7 +780,10 @@ def annuaire_institutions(
             canon.id,
             canon.nom,
             canon.sigle,
-            func.count(func.distinct(Mandat.personne_id)).label("n"),
+            # effectif = personnes DISTINCTES actuellement en fonction ici
+            func.count(func.distinct(
+                case((Mandat.date_fin.is_(None), Mandat.personne_id))
+            )).label("n"),
             func.max(Mandat.date_debut).label("dernier"),
         )
         .select_from(Mandat)
@@ -808,7 +811,7 @@ def annuaire_institutions(
             .select_from(Mandat)
             .join(Structure, Structure.id == Mandat.structure_id)
             .join(canon, canon.id == cid)
-            .where(canon.nom.ilike("minist%"))
+            .where(canon.nom.ilike("minist%"), Mandat.date_fin.is_(None))
         ).all():
             agents_par_struct.setdefault(sid, set()).add(pid)
 
@@ -871,6 +874,8 @@ class AgentOut(BaseModel):
     matricule: str | None
     poste: str | None
     date_debut: date | None
+    date_fin: date | None = None
+    en_fonction: bool = True
     document_url: str | None
 
 
@@ -884,7 +889,8 @@ class InstitutionDetail(BaseModel):
     nom: str
     sigle: str | None
     type: str
-    nb_agents: int
+    nb_agents: int  # personnes distinctes actuellement en fonction
+    nb_anciens: int = 0  # personnes distinctes n'ayant plus de mandat en cours ici
     categories: list[CategorieAgents]
     intitules: list[str] = []
     intitule_officiel: bool = False
@@ -955,6 +961,7 @@ def annuaire_institution(struct_id: int, db: Session = Depends(get_db)):
             Personne.matricule,
             Mandat.poste,
             Mandat.date_debut,
+            Mandat.date_fin,
             Document.url,
         )
         .select_from(Mandat)
@@ -963,13 +970,22 @@ def annuaire_institution(struct_id: int, db: Session = Depends(get_db)):
         .outerjoin(Nomination, Nomination.id == Mandat.nomination_debut_id)
         .outerjoin(Document, Document.id == Nomination.document_id)
         .where(cid.in_(ids))
-        .order_by(Mandat.poste, Personne.nom_complet)
+        # en poste d'abord, puis du plus récent au plus ancien
+        .order_by(
+            Mandat.date_fin.is_(None).desc(),
+            Mandat.date_debut.desc().nulls_last(),
+            Personne.nom_complet,
+        )
     ).all()
 
     groupes: dict[str, list[AgentOut]] = {}
-    personnes = set()
+    en_poste: set[int] = set()
+    anciens: set[int] = set()
     for r in rows:
-        personnes.add(r.personne_id)
+        if r.date_fin is None:
+            en_poste.add(r.personne_id)
+        else:
+            anciens.add(r.personne_id)
         cat = categorie_fonction(r.poste)
         groupes.setdefault(cat, []).append(
             AgentOut(
@@ -978,6 +994,8 @@ def annuaire_institution(struct_id: int, db: Session = Depends(get_db)):
                 matricule=r.matricule,
                 poste=r.poste,
                 date_debut=r.date_debut,
+                date_fin=r.date_fin,
+                en_fonction=r.date_fin is None,
                 document_url=r.url,
             )
         )
@@ -986,12 +1004,15 @@ def annuaire_institution(struct_id: int, db: Session = Depends(get_db)):
         for c in CATEGORIES_FONCTION
         if c in groupes
     ]
+    # « ancien » = plus aucun mandat en cours dans l'institution
+    anciens -= en_poste
     return InstitutionDetail(
         id=inst.id,
         nom=intitules[0],
         sigle=inst.sigle if sigle_fiable(inst.nom, inst.sigle, part_ca.get(inst.id)) else None,
         type=type_institution(inst.nom, inst.sigle, part_ca.get(inst.id)),
-        nb_agents=len(personnes),
+        nb_agents=len(en_poste),
+        nb_anciens=len(anciens),
         categories=categories,
         intitules=intitules,
         intitule_officiel=bool(officiel),
