@@ -1,0 +1,18 @@
+appliquer,id_source,nom_source,id_canonique,nom_canonique,similarite
+oui,397,Centre-Est,355,Région du Centre-Est,region
+oui,398,Centre-Nord,411,Région du Centre-Nord,region
+oui,475,Centre-Ouest,669,Région du Centre-Ouest,region
+oui,399,Hauts-Bassins,594,Région des Hauts-Bassins,region
+oui,400,Plateau-Central,334,Région du Plateau-Central,region
+oui,401,Sahel,335,Région du Sahel,region
+oui,104,Goulmou,184,Région du Goulmou,region
+oui,303,Ganzourgou,360,Province du Ganzourgou,province
+oui,559,Gourma,362,Province du Gourma,province
+oui,304,Houet,363,Province du Houet,province
+oui,532,Kadiogo,364,Province du Kadiogo,province
+oui,309,Noumbiel,536,Province du Noumbiel,province
+oui,668,Société AIR Burkina SA,99,Air Burkina,societe
+oui,393,Société FASO KOSAM,286,FASO KOSAM,societe
+oui,392,Société FASO GUULGO,373,FASO GUULGO,societe
+oui,702,Université Joseph KI-ZERBO (ISSP),130,Institut supérieur des sciences de la population (ISSP),institut-sigle
+
