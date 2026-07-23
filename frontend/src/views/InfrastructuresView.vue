@@ -181,6 +181,39 @@ function couleurExpr() {
   return expr;
 }
 
+function propsDe(r) {
+  return {
+    secteur: r.secteur || "Autres",
+    titre: r.titre,
+    type: libelleType(r.type),
+    statut: libelleStatut(r.statut),
+    lieu: r.localisation_nom || r.region || "",
+    arr: r.localisation_nom_arr || "",
+    date: r.date_evenement || "",
+    montant: r.montant_fcfa || 0,
+    url: r.source_url || "",
+  };
+}
+
+function popupHTML(p) {
+  const lieu = p.arr ? `${p.lieu} → ${p.arr}` : p.lieu;
+  const montant = p.montant ? `<br><b>${mds(p.montant)} Mds FCFA</b>` : "";
+  const lien = p.url
+    ? `<br><a href="${p.url}" target="_blank" rel="noopener">source →</a>` : "";
+  return (
+    `<div class="popup-inf"><strong>${p.titre}</strong><br>` +
+    `${p.type} · <span class="pstatut">${p.statut}</span>` +
+    `${lieu ? "<br>" + lieu : ""}${p.date ? " · " + p.date : ""}${montant}${lien}</div>`
+  );
+}
+
+function ouvrirPopup(e) {
+  new maplibregl.Popup({ closeButton: true, maxWidth: "300px" })
+    .setLngLat(e.lngLat)
+    .setHTML(popupHTML(e.features[0].properties))
+    .addTo(map);
+}
+
 function geojson(list) {
   return {
     type: "FeatureCollection",
@@ -189,16 +222,7 @@ function geojson(list) {
       .map((r) => ({
         type: "Feature",
         geometry: { type: "Point", coordinates: [r.longitude, r.latitude] },
-        properties: {
-          secteur: r.secteur || "Autres",
-          titre: r.titre,
-          type: libelleType(r.type),
-          statut: libelleStatut(r.statut),
-          lieu: r.localisation_nom || r.region || "",
-          date: r.date_evenement || "",
-          montant: r.montant_fcfa || 0,
-          url: r.source_url || "",
-        },
+        properties: propsDe(r),
       })),
   };
 }
@@ -239,6 +263,13 @@ function initCarte() {
         "line-opacity": 0.75,
       },
     });
+    // couche transparente large : zone de clic confortable sur la liaison
+    map.addLayer({
+      id: "infra-lignes-hit",
+      type: "line",
+      source: "liaisons",
+      paint: { "line-color": "#000", "line-opacity": 0, "line-width": 14 },
+    });
     map.addSource("infra", { type: "geojson", data: geojson([]) });
     map.addLayer({
       id: "infra-pts",
@@ -252,21 +283,11 @@ function initCarte() {
         "circle-opacity": 0.9,
       },
     });
-    map.on("click", "infra-pts", (e) => {
-      const p = e.features[0].properties;
-      const montant = p.montant ? `<br><b>${mds(p.montant)} Mds FCFA</b>` : "";
-      const lien = p.url
-        ? `<br><a href="${p.url}" target="_blank" rel="noopener">source →</a>` : "";
-      new maplibregl.Popup({ closeButton: true, maxWidth: "280px" })
-        .setLngLat(e.lngLat)
-        .setHTML(
-          `<div class="popup-inf"><strong>${p.titre}</strong><br>` +
-          `${p.type} · ${p.statut}<br>${p.lieu}${p.date ? " · " + p.date : ""}${montant}${lien}</div>`
-        )
-        .addTo(map);
-    });
-    map.on("mouseenter", "infra-pts", () => (map.getCanvas().style.cursor = "pointer"));
-    map.on("mouseleave", "infra-pts", () => (map.getCanvas().style.cursor = ""));
+    for (const couche of ["infra-pts", "infra-lignes-hit"]) {
+      map.on("click", couche, ouvrirPopup);
+      map.on("mouseenter", couche, () => (map.getCanvas().style.cursor = "pointer"));
+      map.on("mouseleave", couche, () => (map.getCanvas().style.cursor = ""));
+    }
     mapPrete = true;
     rafraichirCarte();
   });
@@ -283,7 +304,7 @@ function geojsonLignes(list) {
           type: "LineString",
           coordinates: [[r.longitude, r.latitude], [r.longitude_arr, r.latitude_arr]],
         },
-        properties: { secteur: r.secteur || "Autres" },
+        properties: propsDe(r),
       })),
   };
 }
@@ -409,7 +430,8 @@ onBeforeUnmount(() => {
 .bloc-graphe { padding: 14px 16px; }
 .bloc-graphe h3 { font-size: 0.95rem; margin: 0 0 8px; }
 .graphe-inf { height: 260px; width: 100%; }
-:deep(.popup-inf) { font-size: 0.85rem; line-height: 1.4; }
+:deep(.popup-inf) { font-size: 0.85rem; line-height: 1.5; }
+:deep(.popup-inf .pstatut) { font-weight: 600; color: var(--accent); }
 :deep(.maplibregl-popup-content) { background: var(--surface-1); color: var(--text-primary); }
 :deep(.maplibregl-popup-content a) { color: var(--accent); }
 </style>
