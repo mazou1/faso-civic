@@ -7,8 +7,8 @@
 
 Plateforme citoyenne indépendante qui **collecte, archive, structure et restitue
 l'information publique burkinabè** : conseils des ministres, nominations, lois et
-décrets, budget de l'État, composition du gouvernement et de l'Assemblée.
-Chaque donnée affichée est reliée à son document source officiel.
+décrets, marchés publics, budget de l'État, composition du gouvernement et de
+l'Assemblée. Chaque donnée affichée est reliée à son document source officiel.
 
 Inspirée de [vie-publique.sn](https://www.vie-publique.sn) (Code for Senegal).
 
@@ -30,14 +30,15 @@ Inspirée de [vie-publique.sn](https://www.vie-publique.sn) (Code for Senegal).
 
 | Section | Contenu |
 |---|---|
-| **Conseil des ministres** | 145 comptes rendus structurés (2022→) : résumé des décisions, texte intégral, PDF officiel |
-| **Décisions** | 1 299 décisions validées, filtrables par ministère et nature |
-| **Annuaire de l'État** | 545 institutions (ministères, présidence, justice, régions, police, diplomatie, établissements) ; 8 107 mandats reconstitués, fiches personnalités **désambiguïsées par matricule** (6 188 personnes) ; **titulaires en fonction distingués des anciens** par détection des successions |
+| **Conseil des ministres** | 160 comptes rendus structurés (2022→) : résumé des décisions, texte intégral, PDF officiel |
+| **Décisions** | 1 435 décisions validées, filtrables par ministère et nature |
+| **Annuaire de l'État** | 563 institutions (ministères, présidence, justice, régions, police, diplomatie, établissements) ; 8 264 mandats reconstitués, fiches personnalités **désambiguïsées par matricule** (6 157 personnes) ; **titulaires en fonction distingués des anciens** par détection des successions |
 | **Gouvernement** | Composition officielle avec portraits (Présidence du Faso), suivie à chaque remaniement |
 | **Assemblée** | 71 députés synchronisés depuis an.bf, président de l'ALT, lois votées |
-| **Lois & décrets** | 4 900 textes juridiques (Légiburkina) avec PDF archivés ; ~1 500 déjà en texte intégral (OCR en cours sur le reste) |
-| **Finances** | Budget de l'État par exercice, répartition des recettes/dépenses, allocations sectorielles, 428 engagements chiffrés du Conseil des ministres |
-| **Documents** | Bibliothèque des 5 363 documents archivés, facettes par type et source |
+| **Lois & décrets** | ~4 900 textes juridiques (Légiburkina) avec PDF archivés et recherche plein texte (OCR) |
+| **Marchés publics** | Attributions extraites des Quotidiens de la DGCMEF (attributaire, montant, objet, secteur) |
+| **Finances** | Budget de l'État par exercice, répartition recettes/dépenses, allocations sectorielles, 428 engagements chiffrés du Conseil des ministres |
+| **Documents** | Bibliothèque de ~5 000 documents officiels archivés, facettes par type et source |
 | **Recherche** | Plein texte français sur tout le corpus, extraits surlignés |
 | **Dossiers** | Grands sujets (dont le [Plan de relance PND 2026-2030](apps/plan-relance/)) |
 
@@ -97,6 +98,7 @@ data/               # archives brutes — hors git, à sauvegarder
 | legiburkina.gov.bf | Lois, décrets, arrêtés (+ PDF) | quotidien |
 | assembleenationale.bf | Députés, président de l'ALT | quotidien |
 | presidencedufaso.bf | Communiqués (RSS), composition du gouvernement | quotidien |
+| dgcmef.gov.bf | Quotidiens des marchés publics (attributions) | quotidien |
 | finances.gov.bf | Veille du Budget citoyen | quotidien |
 | lefaso.net, sidwaya.info, aib.media, burkina24.com, lepays.bf | Actualités (RSS) | 30 min |
 
@@ -139,15 +141,19 @@ cd apps/plan-relance && npm install && npm run build   # sortie dans frontend/pu
 ```bash
 python -m app.ingestion.run all           # collecte manuelle (sinon : worker)
 python -m app.extraction.run 5            # structuration LLM des 5 prochains CR
-# → valider dans /admin (ou : python -m app.validation 0.9)
+# → valider : back-office /admin (page « ① À valider »), ou en masse par seuil
+#   de confiance : python -m app.validation 0.9
 python -m app.desambiguisation           # matricules + éclatement des homonymes
-python -m app.annuaire                    # reconsolide les mandats
+python -m app.annuaire                    # reconsolide les mandats (+ successions)
 python -m app.fusion proposer 0.75        # doublons de structures → CSV à relire
 python -m app.extraction.ocr_textes 500   # OCR des textes scannés (worker, Tesseract)
 ```
 
-L'extraction LLM utilise **Mistral** par défaut (`FASO_LLM_PROVIDER=mistral`,
-tier gratuit) avec bascule possible vers l'API Claude.
+L'extraction LLM ne publie jamais seule : elle produit des entités `a_valider`,
+qu'un humain valide dans le back-office. Le tableau de bord **« À valider »** de
+`/admin` montre en un coup d'œil ce qui attend une action, par type. L'extraction
+utilise **Mistral** par défaut (`FASO_LLM_PROVIDER=mistral`, tier gratuit) avec
+bascule possible vers l'API Claude.
 
 ## Méthodologie et limites
 
@@ -186,10 +192,25 @@ curl 'http://localhost:8090/api/finances/stats'
 
 ## Contribuer
 
-Les contributions sont bienvenues — collecteurs de nouvelles sources, données
-budgétaires, corrections, traductions. Lire [`CONTRIBUTING.md`](CONTRIBUTING.md),
-et ouvrir une issue avec les gabarits fournis (bug, source dépubliée,
-proposition de source).
+FasoCivic est **libre et collaboratif** : il vit des contributions de chacun.
+On peut aider **sans écrire une ligne de code** :
+
+- 🔗 **Signaler une source cassée** — les sites officiels changent d'adresse ou
+  dépublient souvent. Ces signalements sont précieux.
+- 📚 **Proposer une nouvelle source** officielle à collecter.
+- 👀 **Relire les données** — repérer une erreur d'extraction, un doublon, une
+  fonction périmée, et l'indiquer en issue.
+- 🐛 **Signaler un bug** ou suggérer une amélioration du site.
+
+Et bien sûr, côté technique : nouveaux collecteurs, dossiers thématiques,
+améliorations du front, tests. Tout passe par une **issue** (gabarits fournis :
+bug, source cassée, proposition de source) puis une **pull request**.
+
+👉 Guide complet dans **[CONTRIBUTING.md](CONTRIBUTING.md)** : mise en place,
+conventions du projet, ajout d'un collecteur, pièges connus.
+
+Principe non négociable : le projet est **citoyen, indépendant et non partisan**,
+et **aucune donnée n'est publiée sans être sourcée et validée**.
 
 ## Licence et crédits
 
