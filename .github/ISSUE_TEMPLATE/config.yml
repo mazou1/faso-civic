@@ -1,0 +1,10 @@
+# Configuration du sélecteur « New issue » de GitHub.
+# Les issues vierges sont désactivées : on passe par un gabarit (bug, source
+# cassée, proposition de source) pour garder les signalements structurés.
+blank_issues_enabled: false
+# Pour offrir une porte de sortie « autre sujet / question », activez l'onglet
+# Discussions du dépôt puis dé-commentez le bloc ci-dessous :
+# contact_links:
+#   - name: Question ou autre sujet
+#     url: https://github.com/mazou1/faso-civic/discussions
+#     about: Pour une question, une idée à débattre ou un sujet hors gabarit.
