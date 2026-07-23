@@ -134,6 +134,38 @@ def test_type_territorial_police_diplomatique(nom, attendu):
     assert type_institution(nom) == attendu
 
 
+@pytest.mark.parametrize(
+    "nom,attendu",
+    [
+        ("Boucle du Mouhoun", "Bankui"),
+        ("Sahel", "Liptako"),
+        ("Région du Sahel", "Liptako"),
+        ("Centre", "Kadiogo"),
+        ("Sud-Ouest", "Djôrô"),
+        ("Hauts-Bassins", "Guiriko"),
+        # noms NOUVEAUX ou provinces homonymes : pas d'ancien nom → None
+        ("Région du Bankui", None),
+        ("Sourou", None),           # province, pas la nouvelle région
+        ("Province du Kadiogo", None),
+        ("Kadiogo", None),          # nouveau nom (ex-Centre), pas un ancien nom
+        ("Province du Gourma", None),
+    ],
+)
+def test_region_officielle(nom, attendu):
+    from app.annuaire_taxonomie import region_officielle
+
+    assert region_officielle(nom) == attendu
+
+
+def test_nom_region_affiche():
+    from app.annuaire_taxonomie import nom_region_affiche
+
+    assert nom_region_affiche("Sahel") == "Région Liptako (ex-Sahel)"
+    assert nom_region_affiche("Région du Sahel") == "Région Liptako (ex-Sahel)"
+    # hors région renommée : inchangé
+    assert nom_region_affiche("Province du Kadiogo") == "Province du Kadiogo"
+
+
 def test_sigle_parasite_non_affiche():
     assert not sigle_fiable("Ministère de la Sécurité", "ENEF")
     assert sigle_fiable("École nationale des eaux et forêts", "ENEF")

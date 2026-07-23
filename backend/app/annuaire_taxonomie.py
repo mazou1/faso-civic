@@ -42,6 +42,50 @@ def _plier_simple(nom: str) -> str:
     return re.sub(r"\s+", " ", sans).strip().lower()
 
 
+# Réforme territoriale du 2 juillet 2025 : les 13 régions historiques sont
+# renommées (toponymes endogènes). Clé = ancien nom plié → nom officiel actuel.
+# Les 4 régions créées (Soum, Sirba, Tapoa, Sourou) n'ont pas d'ancien nom.
+# Sourou/Kadiogo sont aussi des noms de PROVINCES : ce mapping étant indexé par
+# les ANCIENS noms, il ne les touche pas (voir type_institution).
+_REGIONS_REFORME = {
+    "boucle du mouhoun": "Bankui",
+    "cascades": "Tannounyan",
+    "centre": "Kadiogo",
+    "centre est": "Nakambé",
+    "centre nord": "Kuilsé",
+    "centre ouest": "Nando",
+    "centre sud": "Nazinon",
+    "est": "Goulmou",
+    "hauts bassins": "Guiriko",
+    "nord": "Yaadga",
+    "plateau central": "Oubri",
+    "sahel": "Liptako",
+    "sud ouest": "Djôrô",
+}
+
+# préfixe territorial éventuel à retirer avant de consulter le mapping
+_PREFIXE_REGION = re.compile(r"^r[ée]gion\s+(?:du|des|de\s+la|de\s+l|de)\s+", re.I)
+
+
+def region_officielle(nom: str | None) -> str | None:
+    """Nom officiel actuel d'une région désignée par son ancien nom (réforme
+    2025), ou None si le nom n'est pas un ancien nom de région. Tolère le
+    préfixe « Région du … » et les noms nus."""
+    plie = _plier_simple(_PREFIXE_REGION.sub("", nom or ""))
+    return _REGIONS_REFORME.get(plie)
+
+
+def nom_region_affiche(nom: str | None) -> str:
+    """Libellé d'affichage d'une région : nom officiel actuel avec l'ancien en
+    rappel (« Région Liptako (ex-Sahel) »). Renvoie le nom tel quel hors
+    région renommée."""
+    officiel = region_officielle(nom)
+    if not officiel:
+        return nom or ""
+    ancien = _PREFIXE_REGION.sub("", nom or "").strip()
+    return f"Région {officiel} (ex-{ancien})"
+
+
 _INSTIT = [
     ("ministere", re.compile(r"^\s*minist[èe]re\b", re.I)),
     ("institution", re.compile(

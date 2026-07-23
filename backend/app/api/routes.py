@@ -768,7 +768,9 @@ def annuaire_institutions(
     from app.annuaire_taxonomie import (
         GROUPES_INSTITUTION,
         meme_intitule,
+        nom_region_affiche,
         portefeuille,
+        region_officielle,
         sigle_fiable,
         type_institution,
     )
@@ -829,6 +831,10 @@ def annuaire_institutions(
             intitules = [officiel] + [
                 n for n in intitules if not meme_intitule(n, officiel)
             ]
+        # région renommée par la réforme 2025 : afficher le nom officiel actuel
+        # avec l'ancien en rappel (« Région Liptako (ex-Sahel) »)
+        if t == "territoriale" and region_officielle(principal.nom):
+            intitules = [nom_region_affiche(principal.nom)]
         if len(variantes) > 1:
             agents = set()
             for v in variantes:
@@ -904,7 +910,9 @@ def annuaire_institution(struct_id: int, db: Session = Depends(get_db)):
         CATEGORIES_FONCTION,
         categorie_fonction,
         meme_intitule,
+        nom_region_affiche,
         portefeuille,
+        region_officielle,
         sigle_fiable,
         type_institution,
     )
@@ -923,6 +931,9 @@ def annuaire_institution(struct_id: int, db: Session = Depends(get_db)):
     intitules = [inst.nom]
     officiel = None
     part_ca = _part_conseil_administration(db)
+    # région renommée (réforme 2025) : afficher le nom officiel actuel
+    if region_officielle(inst.nom):
+        intitules = [nom_region_affiche(inst.nom)]
     cle = portefeuille(inst.nom, type_institution(inst.nom, inst.sigle, part_ca.get(inst.id)))
     if cle:
         variantes = db.execute(
