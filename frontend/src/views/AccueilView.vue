@@ -1,9 +1,21 @@
 <template>
-  <h1>L'activité gouvernementale, en clair</h1>
-  <p class="sous-titre">
-    Décisions du Conseil des ministres et nominations officielles du Burkina Faso,
-    extraites des comptes rendus publics et reliées à leurs sources.
-  </p>
+  <section class="hero">
+    <h1 class="hero-titre">L'information publique du Burkina&nbsp;Faso, en clair</h1>
+    <p class="hero-sous">
+      Décisions du Conseil des ministres, nominations, lois, budget, marchés et
+      infrastructures — extraits des sources officielles et reliés à leur document d'origine.
+    </p>
+    <form class="hero-recherche" @submit.prevent="lancerRecherche">
+      <span class="loupe" aria-hidden="true">🔍</span>
+      <input v-model="q" type="search" placeholder="Rechercher une personne, une décision, un texte…" />
+      <button type="submit">Rechercher</button>
+    </form>
+    <nav class="hero-acces">
+      <router-link v-for="a in ACCES" :key="a.to" :to="a.to" class="acces-pill">
+        <span class="ico" aria-hidden="true">{{ a.ico }}</span>{{ a.lib }}
+      </router-link>
+    </nav>
+  </section>
 
   <div class="grille-une" v-if="dernierConseil || actualites.length">
     <router-link v-if="dernierConseil" :to="`/conseils/${dernierConseil.id}`" class="carte-cm">
@@ -65,8 +77,25 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import { apiGet } from "../api";
 import { baseOptions, monter, roles } from "../charts";
+
+const router = useRouter();
+const q = ref("");
+function lancerRecherche() {
+  const terme = q.value.trim();
+  if (terme.length >= 2) router.push({ path: "/recherche", query: { q: terme } });
+}
+const ACCES = [
+  { to: "/conseils", ico: "🏛️", lib: "Conseil des ministres" },
+  { to: "/annuaire", ico: "👥", lib: "Annuaire de l'État" },
+  { to: "/finances", ico: "💰", lib: "Finances" },
+  { to: "/infrastructures", ico: "🛠️", lib: "Infrastructures" },
+  { to: "/textes", ico: "📜", lib: "Lois & décrets" },
+  { to: "/marches", ico: "🧾", lib: "Marchés publics" },
+  { to: "/documents", ico: "📄", lib: "Documents" },
+];
 
 const LIBELLES_TYPE = {
   adoption_decret: "Décrets adoptés",
@@ -189,6 +218,45 @@ onBeforeUnmount(() => nettoyages.forEach((fn) => fn()));
 </script>
 
 <style scoped>
+/* Hero — accès à l'information, inspiré de vie-publique.sn */
+.hero { text-align: center; padding: 18px 0 34px; }
+.hero-titre {
+  font-size: clamp(1.9rem, 4.5vw, 3rem); font-weight: 800; letter-spacing: -0.02em;
+  line-height: 1.12; margin: 0 auto 14px; max-width: 780px;
+}
+.hero-sous {
+  color: var(--text-secondary); font-size: 1.05rem; line-height: 1.55;
+  max-width: 640px; margin: 0 auto 26px;
+}
+.hero-recherche {
+  display: flex; align-items: center; gap: 8px; max-width: 620px; margin: 0 auto;
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 999px;
+  padding: 6px 6px 6px 18px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+.hero-recherche .loupe { font-size: 1rem; opacity: 0.7; }
+.hero-recherche input {
+  flex: 1; border: none; background: none; color: var(--text-primary);
+  font-size: 1rem; padding: 12px 4px; min-width: 0; outline: none;
+}
+.hero-recherche button {
+  flex: none; border: none; background: var(--accent); color: #fff;
+  border-radius: 999px; padding: 11px 20px; font-size: 0.95rem; font-weight: 600; cursor: pointer;
+}
+.hero-recherche button:hover { filter: brightness(1.06); }
+.hero-acces { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 22px; }
+.acces-pill {
+  display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px;
+  border: 1px solid var(--border); border-radius: 999px; background: var(--surface-1);
+  color: var(--text-primary); font-size: 0.92rem; font-weight: 500;
+  transition: border-color 0.15s, transform 0.05s;
+}
+.acces-pill:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; transform: translateY(-1px); }
+.acces-pill .ico { font-size: 1.05rem; }
+@media (max-width: 640px) {
+  .hero { padding: 8px 0 24px; }
+  .hero-recherche button { padding: 11px 14px; }
+}
+
 .grille-une { display: grid; grid-template-columns: 1fr 1.4fr; gap: 14px; margin-bottom: 18px; }
 @media (max-width: 760px) { .grille-une { grid-template-columns: 1fr; } }
 

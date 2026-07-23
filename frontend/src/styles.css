@@ -17,9 +17,9 @@
 /* Thème sombre : suit le système, sauf choix explicite via le bouton
    (data-theme sur <html>, persisté en localStorage). */
 :root[data-theme="dark"] {
-  --surface-0: #141413;
-  --surface-1: #211f1d;
-  --border: #3d3b37;
+  --surface-0: #14171d;
+  --surface-1: #1e222a;
+  --border: #363c47;
   --text-primary: #f4f3ef;
   --text-secondary: #d6d4ca;
   --text-muted: #a7a498;
@@ -30,9 +30,9 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --surface-0: #141413;
-    --surface-1: #211f1d;
-    --border: #3d3b37;
+    --surface-0: #14171d;
+    --surface-1: #1e222a;
+    --border: #363c47;
     --text-primary: #f4f3ef;
     --text-secondary: #d6d4ca;
     --text-muted: #a7a498;
