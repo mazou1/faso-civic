@@ -1,0 +1,36 @@
+# Reverse proxy + HTTPS automatique (Let's Encrypt).
+# DOMAIN et ACME_EMAIL viennent de l'environnement (service caddy, via .env).
+
+{
+	# e-mail ACME (facultatif mais recommandé : alertes d'expiration)
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# En-têtes de sécurité de base
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Back-office et documentation d'API → FastAPI directement.
+	# Le front nginx ne connaît pas ces chemins ; Caddy les route vers l'API.
+	@backend path /admin /admin/* /docs /redoc
+	handle @backend {
+		# Sécurité en plus : restreindre le back-office à des IP connues.
+		# Décommentez et adaptez pour n'autoriser /admin que depuis votre réseau :
+		# @adminblocked not client_ip 203.0.113.10 198.51.100.0/24
+		# respond @adminblocked "Accès restreint" 403
+		reverse_proxy api:8000
+	}
+
+	# Tout le reste → front nginx : il sert la SPA et proxifie /api/ et
+	# /openapi.json vers l'API (avec le strip du préfixe /api).
+	handle {
+		reverse_proxy web:80
+	}
+}

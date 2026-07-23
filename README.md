@@ -136,6 +136,14 @@ cd frontend && npm install && npm run dev    # Vite proxy /api → :8000
 cd apps/plan-relance && npm install && npm run build   # sortie dans frontend/public/
 ```
 
+## Déploiement
+
+Pour mettre en production sur un VPS unique (Hetzner) derrière Caddy (HTTPS
+automatique), voir **[`deploy/README.md`](deploy/README.md)** : pile
+`docker-compose.prod.yml`, reverse proxy, et **migration des données locales
+sans retraitement** (la base déjà calculée est copiée telle quelle ;
+l'extraction LLM et l'OCR ne sont pas relancés).
+
 ## Cycle de vie des données
 
 ```bash

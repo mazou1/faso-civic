@@ -1,0 +1,88 @@
+# Déploiement production — VPS unique (Hetzner) derrière Caddy (HTTPS auto).
+#
+# Fichier AUTONOME : à lancer seul, pas en override du docker-compose.yml de dev
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Seul Caddy expose des ports (80/443). db, api, worker, web restent sur le
+# réseau interne. Variables lues depuis le fichier .env (voir deploy/.env.prod.example).
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_USER: faso
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD manquant}
+      POSTGRES_DB: faso
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U faso -d faso"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build: ./backend
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    environment:
+      FASO_DATABASE_URL: postgresql+psycopg://faso:${POSTGRES_PASSWORD}@db:5432/faso
+      FASO_DATA_DIR: /data
+      FASO_ADMIN_USER: ${FASO_ADMIN_USER:?}
+      FASO_ADMIN_PASSWORD: ${FASO_ADMIN_PASSWORD:?}
+      FASO_SECRET_KEY: ${FASO_SECRET_KEY:?}
+    volumes:
+      - ./backend/data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  worker:
+    build: ./backend
+    command: python -m app.ingestion.scheduler
+    environment:
+      FASO_DATABASE_URL: postgresql+psycopg://faso:${POSTGRES_PASSWORD}@db:5432/faso
+      FASO_DATA_DIR: /data
+      FASO_LLM_PROVIDER: ${FASO_LLM_PROVIDER:-mistral}
+      FASO_MISTRAL_API_KEY: ${FASO_MISTRAL_API_KEY:-}
+      FASO_ANTHROPIC_API_KEY: ${FASO_ANTHROPIC_API_KEY:-}
+    volumes:
+      - ./backend/data:/data
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build: ./frontend
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN manquant (ex. faso.example.org)}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
