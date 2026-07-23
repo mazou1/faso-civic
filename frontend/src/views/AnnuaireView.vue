@@ -91,6 +91,9 @@ const ORDRE_GROUPES = [
   "Ministères",
   "Présidence, Primature & institutions",
   "Justice & juridictions",
+  "Régions, provinces & communes",
+  "Directions territoriales de la police",
+  "Représentations diplomatiques",
   "Établissements publics & sociétés d'État",
 ];
 

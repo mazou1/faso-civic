@@ -108,6 +108,32 @@ def test_intitule_officiel(poste, attendu):
     assert intitule_officiel(poste) == attendu
 
 
+@pytest.mark.parametrize(
+    "nom,attendu",
+    [
+        ("Région du Sahel", "territoriale"),
+        ("Province du Gourma", "territoriale"),
+        ("Département de Korsimoro", "territoriale"),
+        ("Commune de Ouagadougou", "territoriale"),
+        # noms nus de région (historiques et réforme 2025)
+        ("Boucle du Mouhoun", "territoriale"),
+        ("Hauts-Bassins", "territoriale"),
+        ("Goulmou", "territoriale"),
+        # police déconcentrée : AVANT le motif territorial (« … de la Comoé »)
+        ("Direction provinciale de la police nationale de la Comoé", "police"),
+        ("Direction régionale de la police nationale du Sahel", "police"),
+        # diplomatie
+        ("Ambassade du Burkina Faso à Berlin", "diplomatique"),
+        ("Consulat général du Burkina Faso à Abidjan", "diplomatique"),
+        # NE bascule pas : établissement dont le nom contient une région
+        ("Agence de l'eau du Nakanbé", "etablissement"),
+        ("Centre hospitalier régional de Dori", "etablissement"),
+    ],
+)
+def test_type_territorial_police_diplomatique(nom, attendu):
+    assert type_institution(nom) == attendu
+
+
 def test_sigle_parasite_non_affiche():
     assert not sigle_fiable("Ministère de la Sécurité", "ENEF")
     assert sigle_fiable("École nationale des eaux et forêts", "ENEF")

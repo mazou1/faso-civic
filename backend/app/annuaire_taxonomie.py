@@ -7,6 +7,7 @@ spécifique au générique — la première règle qui matche gagne.
 from __future__ import annotations
 
 import re
+import unicodedata
 
 # --- type d'institution -------------------------------------------------------
 # groupe d'affichage → ordre + libellé
@@ -14,8 +15,32 @@ GROUPES_INSTITUTION = [
     ("ministere", "Ministères"),
     ("institution", "Présidence, Primature & institutions"),
     ("juridiction", "Justice & juridictions"),
+    ("territoriale", "Régions, provinces & communes"),
+    ("police", "Directions territoriales de la police"),
+    ("diplomatique", "Représentations diplomatiques"),
     ("etablissement", "Établissements publics & sociétés d'État"),
 ]
+
+# Noms nus de régions (les collecteurs les stockent tantôt « Sahel », tantôt
+# « Région du Sahel ») : 13 régions historiques + les nouvelles régions de la
+# réforme territoriale de 2025. Comparaison sur nom plié (cf. _plier_simple).
+_REGIONS_NUES = {
+    "boucle du mouhoun", "cascades", "centre", "centre est", "centre nord",
+    "centre ouest", "centre sud", "est", "hauts bassins", "nord",
+    "plateau central", "sahel", "sud ouest",
+    # réforme 2025 (nouveaux noms)
+    "bankui", "djoro", "goulmou", "guiriko", "kadiogo", "kuilse",
+    "liptako", "nakambe", "nando", "nazinon", "oubri", "sirba",
+    "sourou", "tannounyan", "tapoa", "yaadga",
+}
+
+
+def _plier_simple(nom: str) -> str:
+    nfkd = unicodedata.normalize("NFKD", nom or "")
+    sans = "".join(c for c in nfkd if not unicodedata.combining(c))
+    sans = sans.replace("’", " ").replace("'", " ").replace("-", " ")
+    return re.sub(r"\s+", " ", sans).strip().lower()
+
 
 _INSTIT = [
     ("ministere", re.compile(r"^\s*minist[èe]re\b", re.I)),
@@ -26,6 +51,20 @@ _INSTIT = [
     ("juridiction", re.compile(
         r"^\s*(?:cour\b|tribunal|conseil\s+constitutionnel|conseil\s+d.[ée]tat|"
         r"conseil\s+sup[ée]rieur\s+de\s+la\s+magistrature|parquet|minist[èe]re\s+public)", re.I)),
+    # une direction de police (déconcentrée) AVANT le motif territorial, qui
+    # sinon avalerait « … de la région/province de X »
+    ("police", re.compile(
+        r"^\s*direction\s+(?:r[ée]gionale|provinciale)\s+de\s+la\s+police", re.I)),
+    ("diplomatique", re.compile(
+        r"^\s*(?:ambassade|consulat|mission\s+diplomatique|"
+        r"repr[ée]sentation\s+permanente|haut\s+commissariat\s+du\s+burkina)", re.I)),
+    # circonscription territoriale : le niveau doit être suivi d'un NOM DE LIEU
+    # capitalisé (« Département de Korsimoro »), ce qui écarte les unités
+    # organisationnelles homographes (« Département de formation permanente… »).
+    # Casse significative → pas de flag re.I.
+    ("territoriale", re.compile(
+        r"^\s*(?:R[ée]gion|Province|D[ée]partement|Commune)\s+"
+        r"(?:du|des|de\s+la|de\s+l['’]|de)\s+[A-ZÉÈ]")),
 ]
 
 
@@ -62,6 +101,9 @@ def type_institution(
     for code, motif in _INSTIT:
         if motif.search(n):
             return code
+    # région désignée par son seul nom (« Sahel », « Boucle du Mouhoun »)
+    if _plier_simple(n) in _REGIONS_NUES:
+        return "territoriale"
     return "etablissement"
 
 

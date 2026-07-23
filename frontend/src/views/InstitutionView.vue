@@ -87,6 +87,9 @@ const TYPES = {
   ministere: "Ministère",
   institution: "Institution",
   juridiction: "Juridiction",
+  territoriale: "Région / province / commune",
+  police: "Direction territoriale de la police",
+  diplomatique: "Représentation diplomatique",
   etablissement: "Établissement / société d'État",
 };
 function libelleType(t) {
