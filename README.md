@@ -49,6 +49,11 @@ Inspirée de [vie-publique.sn](https://www.vie-publique.sn) (Code for Senegal).
   </tr>
 </table>
 
+L'annuaire est organisé par institution (ministères, régions, juridictions,
+établissements…), chaque ministère regroupant ses intitulés successifs :
+
+![Annuaire de l'État par institution](docs/captures/annuaire.png)
+
 ## Architecture
 
 ```
