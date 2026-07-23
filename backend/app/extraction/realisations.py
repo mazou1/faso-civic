@@ -95,7 +95,13 @@ class RealisationExtraite(BaseModel):
         "inauguration=cérémonie d'ouverture ; mise_en_service=entrée en fonction"
     )
     lieu: str | None = Field(
-        default=None, description="Commune ou ville où se situe l'ouvrage (le nom seul)"
+        default=None, description="Commune ou ville où se situe l'ouvrage (le nom seul) ; "
+        "pour une route/piste reliant deux localités, la localité de DÉPART"
+    )
+    lieu_arrivee: str | None = Field(
+        default=None,
+        description="UNIQUEMENT pour un ouvrage linéaire (route, piste, pont) reliant deux "
+        "localités : la localité d'ARRIVÉE (l'autre extrémité). Sinon null.",
     )
     region: str | None = Field(default=None, description="Région, si mentionnée")
     date_evenement: date | None = Field(
@@ -221,6 +227,7 @@ def traiter_document(db: Session, doc: Document) -> int:
     cree = 0
     for r in extraction.realisations:
         loc = geocoder(db, r.lieu or r.region)
+        loc_arr = geocoder(db, r.lieu_arrivee) if r.lieu_arrivee else None
         lieu_norm = normaliser_lieu(r.lieu or r.region)
         date_ev = r.date_evenement or date_doc
         if _doublon(db, r.type, loc.id if loc else None, lieu_norm, date_ev):
@@ -238,6 +245,9 @@ def traiter_document(db: Session, doc: Document) -> int:
                 region=(loc.region if loc else r.region),
                 latitude=loc.latitude if loc else None,
                 longitude=loc.longitude if loc else None,
+                localisation_nom_arr=r.lieu_arrivee if loc_arr else None,
+                latitude_arr=loc_arr.latitude if loc_arr else None,
+                longitude_arr=loc_arr.longitude if loc_arr else None,
                 precision_geo=("commune" if loc and loc.type == "commune"
                                else "region" if loc else None),
                 secteur=SECTEUR_PAR_TYPE.get(r.type, "Autres"),
@@ -257,6 +267,65 @@ def traiter_document(db: Session, doc: Document) -> int:
 
 
 TYPES_ACTUALITE = ("actualite_gouv", "communique", "article_presse")
+TYPES_LINEAIRES = ("route", "pont")
+
+
+# mot-clé d'ouvrage linéaire suivi du segment décrivant les extrémités
+_SEG_LINEAIRE = re.compile(
+    r"(?:route|tron[çc]on|autoroute|piste|liaison|axe|voie|bretelle)\s+"
+    r"(?:rurale?\s+|nationale?\s+|reliant\s+|de\s+|du\s+|des\s+)*([^,;:.]+)",
+    re.I,
+)
+_RELIANT = re.compile(r"(?:reliant|entre)\s+([^,;:.]+?)\s+(?:et|à|a)\s+([^,;:.]+)", re.I)
+
+
+def _candidats_termini(titre: str) -> list[tuple[str, str]]:
+    """Paires (départ, arrivée) candidates lues dans un titre de route/pont."""
+    paires: list[tuple[str, str]] = []
+    m = _RELIANT.search(titre)
+    if m:
+        paires.append((m.group(1).strip(), m.group(2).strip()))
+    m = _SEG_LINEAIRE.search(titre)
+    if m:
+        seg = m.group(1).strip()
+        for sep in ["–", "—", " à ", " a ", " et "]:
+            if sep in seg:
+                a, b = seg.split(sep, 1)
+                paires.append((a.strip(), b.strip()))
+                break
+        else:
+            # trait d'union : ambigu (Bobo-Dioulasso). On tente chaque coupure ;
+            # la bonne est celle dont les deux côtés géocodent (cf. appelant).
+            toks = [t for t in seg.split("-") if t.strip()]
+            for k in range(1, len(toks)):
+                paires.append(("-".join(toks[:k]).strip(), "-".join(toks[k:]).strip()))
+    return paires
+
+
+def enrichir_liaisons(db: Session) -> int:
+    """Pour les réalisations linéaires (route/pont) sans second point, déduit les
+    deux extrémités du TITRE (déterministe) et ne retient une liaison que si les
+    deux côtés géocodent vers des localités distinctes. Renvoie le nombre tracé."""
+    rows = db.scalars(
+        select(Realisation).where(
+            Realisation.type.in_(TYPES_LINEAIRES),
+            Realisation.latitude_arr.is_(None),
+        )
+    ).all()
+    ajouts = 0
+    for r in rows:
+        for a_nom, b_nom in _candidats_termini(r.titre):
+            a, b = geocoder(db, a_nom), geocoder(db, b_nom)
+            if a and b and a.id != b.id:
+                r.localisation_nom = a.nom
+                r.latitude, r.longitude, r.region = a.latitude, a.longitude, a.region
+                r.localisation_nom_arr = b.nom
+                r.latitude_arr, r.longitude_arr = b.latitude, b.longitude
+                ajouts += 1
+                logger.info("Liaison %s : %s → %s", r.id, a.nom, b.nom)
+                break
+    db.commit()
+    return ajouts
 
 
 def traiter_lot(db: Session, max_docs: int) -> tuple[int, int, int, int]:
@@ -293,6 +362,13 @@ def traiter_lot(db: Session, max_docs: int) -> tuple[int, int, int, int]:
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     import sys
+
+    # sous-commande d'enrichissement des liaisons routières
+    if len(sys.argv) > 1 and sys.argv[1] == "liaisons":
+        with SessionLocal() as db:
+            n = enrichir_liaisons(db)
+        print(f"{n} liaison(s) routière(s) tracée(s) (départ → arrivée).")
+        return 0
 
     max_docs = int(sys.argv[1]) if len(sys.argv) > 1 else 20
     with SessionLocal() as db:

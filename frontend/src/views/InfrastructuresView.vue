@@ -48,6 +48,17 @@
 
   <!-- CARTE -->
   <div v-show="onglet === 'carte'">
+    <div class="chrono" v-if="anneeMin != null && anneeMax > anneeMin">
+      <button class="btn-lire" @click="enLecture ? stopLecture() : lireChronologie()">
+        {{ enLecture ? "⏸" : "▶" }}
+      </button>
+      <input
+        type="range" :min="anneeMin" :max="anneeMax" step="1"
+        :value="anneeCurseur" @input="anneeCurseur = Number($event.target.value); scrub()"
+      />
+      <span class="chrono-an">{{ curseurActif ? "jusqu'en " + anneeCurseur : "toutes les années" }}</span>
+      <button v-if="curseurActif" class="btn-tout" @click="toutAfficher">tout afficher</button>
+    </div>
     <div class="carte-wrap">
       <div ref="mapEl" class="carte-mlg"></div>
     </div>
@@ -128,6 +139,41 @@ let map = null;
 let mapPrete = false;
 const nettoyeurs = [];
 
+// chronologie animée
+const anneeMin = ref(null), anneeMax = ref(null), anneeCurseur = ref(null);
+const curseurActif = ref(false), enLecture = ref(false);
+let minuterie = null;
+
+function stopLecture() {
+  enLecture.value = false;
+  if (minuterie) { clearInterval(minuterie); minuterie = null; }
+}
+function lireChronologie() {
+  if (anneeMin.value == null) return;
+  stopLecture();
+  curseurActif.value = true;
+  if (anneeCurseur.value == null || anneeCurseur.value >= anneeMax.value)
+    anneeCurseur.value = anneeMin.value;
+  rafraichirCarte();
+  enLecture.value = true;
+  minuterie = setInterval(() => {
+    if (anneeCurseur.value >= anneeMax.value) { stopLecture(); return; }
+    anneeCurseur.value += 1;
+    rafraichirCarte();
+  }, 1300);
+}
+function scrub() {
+  stopLecture();
+  curseurActif.value = true;
+  rafraichirCarte();
+}
+function toutAfficher() {
+  stopLecture();
+  curseurActif.value = false;
+  anneeCurseur.value = anneeMax.value;
+  rafraichirCarte();
+}
+
 function couleurExpr() {
   const expr = ["match", ["get", "secteur"]];
   for (const [sec, col] of Object.entries(COULEURS)) expr.push(sec, col);
@@ -180,6 +226,19 @@ function initCarte() {
   });
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
   map.on("load", () => {
+    // liaisons (routes) sous les points
+    map.addSource("liaisons", { type: "geojson", data: geojsonLignes([]) });
+    map.addLayer({
+      id: "infra-lignes",
+      type: "line",
+      source: "liaisons",
+      layout: { "line-cap": "round" },
+      paint: {
+        "line-color": couleurExpr(),
+        "line-width": ["interpolate", ["linear"], ["zoom"], 5, 2, 10, 4],
+        "line-opacity": 0.75,
+      },
+    });
     map.addSource("infra", { type: "geojson", data: geojson([]) });
     map.addLayer({
       id: "infra-pts",
@@ -209,14 +268,44 @@ function initCarte() {
     map.on("mouseenter", "infra-pts", () => (map.getCanvas().style.cursor = "pointer"));
     map.on("mouseleave", "infra-pts", () => (map.getCanvas().style.cursor = ""));
     mapPrete = true;
-    majSource(dernier);
+    rafraichirCarte();
   });
 }
 
+function geojsonLignes(list) {
+  return {
+    type: "FeatureCollection",
+    features: list
+      .filter((r) => r.latitude != null && r.latitude_arr != null)
+      .map((r) => ({
+        type: "Feature",
+        geometry: {
+          type: "LineString",
+          coordinates: [[r.longitude, r.latitude], [r.longitude_arr, r.latitude_arr]],
+        },
+        properties: { secteur: r.secteur || "Autres" },
+      })),
+  };
+}
+
 let dernier = [];
+function pointsAffiches() {
+  if (!curseurActif.value || anneeCurseur.value == null) return dernier;
+  const y = anneeCurseur.value;
+  return dernier.filter((r) => {
+    if (!r.date_evenement) return false;
+    return Number(r.date_evenement.slice(0, 4)) <= y;
+  });
+}
+function rafraichirCarte() {
+  if (!mapPrete) return;
+  const list = pointsAffiches();
+  if (map.getSource("infra")) map.getSource("infra").setData(geojson(list));
+  if (map.getSource("liaisons")) map.getSource("liaisons").setData(geojsonLignes(list));
+}
 function majSource(list) {
   dernier = list;
-  if (mapPrete && map.getSource("infra")) map.getSource("infra").setData(geojson(list));
+  rafraichirCarte();
 }
 
 async function recharger() {
@@ -228,10 +317,18 @@ async function recharger() {
       apiGet("/realisations/stats", params),
     ]);
     total.value = liste.total;
-    majSource(liste.realisations);
+    dernier = liste.realisations;
     stats.value = st;
     // options de filtre (calculées côté API sur l'ensemble validé)
     opts.value = { annees: st.annees_dispo, types: st.types_dispo, regions: st.regions_dispo };
+    // bornes de la chronologie
+    const ans = (st.par_annee || []).map((d) => Number(d.cle)).filter((n) => !isNaN(n));
+    if (ans.length) {
+      anneeMin.value = Math.min(...ans);
+      anneeMax.value = Math.max(...ans);
+      if (!curseurActif.value) anneeCurseur.value = anneeMax.value;
+    }
+    rafraichirCarte();
     dessinerStats();
   } finally {
     chargement.value = false;
@@ -274,6 +371,7 @@ onMounted(async () => {
   await recharger();
 });
 onBeforeUnmount(() => {
+  stopLecture();
   nettoyeurs.splice(0).forEach((f) => f());
   if (map) map.remove();
 });
@@ -286,6 +384,17 @@ onBeforeUnmount(() => {
 .filtres { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
 .filtres select { padding: 7px 10px; }
 .onglets a { cursor: pointer; }
+.chrono { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.chrono input[type="range"] { flex: 1; max-width: 420px; accent-color: var(--accent); }
+.btn-lire {
+  width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer;
+  background: var(--accent); color: #fff; font-size: 0.9rem; flex: none;
+}
+.chrono-an { color: var(--text-secondary); font-size: 0.88rem; min-width: 120px; }
+.btn-tout {
+  background: none; border: 1px solid var(--border); border-radius: 6px;
+  padding: 3px 8px; font-size: 0.8rem; color: var(--text-secondary); cursor: pointer;
+}
 .carte-wrap { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
 .carte-mlg { height: 540px; width: 100%; }
 .legende { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0; font-size: 0.82rem; color: var(--text-secondary); }

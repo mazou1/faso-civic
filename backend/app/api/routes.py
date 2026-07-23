@@ -1883,6 +1883,9 @@ class RealisationOut(BaseModel):
     localisation_nom: str | None
     latitude: float | None
     longitude: float | None
+    localisation_nom_arr: str | None
+    latitude_arr: float | None
+    longitude_arr: float | None
     secteur: str | None
     maitre_ouvrage: str | None
     montant_fcfa: int | None
@@ -1947,7 +1950,9 @@ def list_realisations(
                 id=r.id, type=r.type, titre=r.titre, description=r.description,
                 statut=r.statut, date_evenement=r.date_evenement, region=r.region,
                 localisation_nom=r.localisation_nom, latitude=r.latitude,
-                longitude=r.longitude, secteur=r.secteur, maitre_ouvrage=r.maitre_ouvrage,
+                longitude=r.longitude, localisation_nom_arr=r.localisation_nom_arr,
+                latitude_arr=r.latitude_arr, longitude_arr=r.longitude_arr,
+                secteur=r.secteur, maitre_ouvrage=r.maitre_ouvrage,
                 montant_fcfa=r.montant_fcfa, source_url=r.source_url,
             )
             for r in rows

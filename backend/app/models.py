@@ -412,6 +412,11 @@ class Realisation(Base):
     latitude: Mapped[float | None] = mapped_column(Float)
     longitude: Mapped[float | None] = mapped_column(Float)
     precision_geo: Mapped[str | None] = mapped_column(String(20))  # commune|region|site|pays
+    # second point d'extrémité pour les ouvrages LINÉAIRES (route, pont, piste
+    # « reliant X à Y ») : trace une liaison entre les deux localités sur la carte
+    localisation_nom_arr: Mapped[str | None] = mapped_column(String(300))
+    latitude_arr: Mapped[float | None] = mapped_column(Float)
+    longitude_arr: Mapped[float | None] = mapped_column(Float)
     # contexte
     secteur: Mapped[str | None] = mapped_column(String(60), index=True)
     maitre_ouvrage: Mapped[str | None] = mapped_column(String(300))
