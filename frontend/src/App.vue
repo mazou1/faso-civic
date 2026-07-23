@@ -39,6 +39,7 @@ const LIENS = [
   ["/marches", "Marchés publics"],
   ["/infrastructures", "Infrastructures"],
   ["/annuaire", "Annuaire de l'État"],
+  ["/services-numeriques", "Services en ligne"],
   ["/documents", "Documents"],
   ["/dossiers", "Dossiers"],
 ];
