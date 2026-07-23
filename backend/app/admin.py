@@ -20,11 +20,13 @@ from app.models import (
     Document,
     DotationBudgetaire,
     EngagementFinancier,
+    Localite,
     Mandat,
     Marche,
     MembreGouvernement,
     Nomination,
     Personne,
+    Realisation,
     RepartitionBudgetaire,
     Run,
     Source,
@@ -263,6 +265,68 @@ class MarcheAdmin(ValidationActionsMixin, ModelView, model=Marche):
     icon = "fa-solid fa-file-signature"
 
 
+class RealisationAdmin(ValidationActionsMixin, ModelView, model=Realisation):
+    modele = Realisation
+    name_plural = "Infrastructures & inaugurations (validation)"
+    page_size = 100
+    column_list = [
+        Realisation.id,
+        Realisation.type,
+        Realisation.titre,
+        Realisation.statut,
+        Realisation.date_evenement,
+        Realisation.localisation_nom,
+        Realisation.region,
+        Realisation.secteur,
+        Realisation.score_confiance,
+        Realisation.statut_validation,
+    ]
+    form_columns = [
+        Realisation.type,
+        Realisation.titre,
+        Realisation.description,
+        Realisation.statut,
+        Realisation.date_evenement,
+        Realisation.localite,
+        Realisation.localisation_nom,
+        Realisation.region,
+        Realisation.latitude,
+        Realisation.longitude,
+        Realisation.precision_geo,
+        Realisation.secteur,
+        Realisation.maitre_ouvrage,
+        Realisation.montant_fcfa,
+        Realisation.source_url,
+        Realisation.photo_url,
+        Realisation.document,
+        Realisation.statut_validation,
+    ]
+    column_searchable_list = [Realisation.titre, Realisation.localisation_nom]
+    column_sortable_list = [Realisation.date_evenement, Realisation.type, Realisation.statut_validation]
+    column_default_sort = ("date_evenement", True)
+    icon = "fa-solid fa-helmet-safety"
+
+
+class LocaliteAdmin(ModelView, model=Localite):
+    name_plural = "Localités (référentiel géo)"
+    page_size = 100
+    column_list = [
+        Localite.id,
+        Localite.nom,
+        Localite.type,
+        Localite.region,
+        Localite.province,
+        Localite.latitude,
+        Localite.longitude,
+        Localite.population,
+    ]
+    column_searchable_list = [Localite.nom, Localite.region]
+    column_sortable_list = [Localite.nom, Localite.type, Localite.population]
+    column_default_sort = [("type", False), ("population", True)]
+    can_create = False
+    icon = "fa-solid fa-location-dot"
+
+
 class DotationAdmin(ValidationActionsMixin, ModelView, model=DotationBudgetaire):
     modele = DotationBudgetaire
     defaut_a_valider = False  # saisie manuelle : on voit toutes les lignes
@@ -369,6 +433,7 @@ _FILES_VALIDATION = [
     (Decision, "Décisions", "decision"),
     (EngagementFinancier, "Engagements financiers", "engagement-financier"),
     (Marche, "Marchés publics", "marche"),
+    (Realisation, "Infrastructures & inaugurations", "realisation"),
     (BudgetExercice, "Budgets d'exercice", "budget-exercice"),
 ]
 
@@ -422,12 +487,14 @@ def mount_admin(app: FastAPI) -> None:
         EngagementAdmin,
         BudgetAdmin,
         MarcheAdmin,
+        RealisationAdmin,
         DotationAdmin,
         RepartitionAdmin,
         MembreGouvernementAdmin,
         PersonneAdmin,
         StructureAdmin,
         MandatAdmin,
+        LocaliteAdmin,
         RunAdmin,
     ):
         admin.add_view(view)

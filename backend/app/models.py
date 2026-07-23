@@ -355,3 +355,74 @@ class Run(Base):
     erreurs: Mapped[str | None] = mapped_column(Text)
 
     source: Mapped[Source] = relationship()
+
+
+class Localite(Base):
+    """Référentiel géographique du Burkina : régions, provinces et localités
+    (communes, villes, villages) avec leurs coordonnées. Sert à géocoder les
+    lieux mentionnés dans les réalisations. Données GeoNames (CC BY 4.0)."""
+
+    __tablename__ = "localite"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nom: Mapped[str] = mapped_column(String(200), index=True)
+    nom_normalise: Mapped[str] = mapped_column(String(200), index=True)  # matching
+    type: Mapped[str] = mapped_column(String(20))  # region | province | commune
+    region: Mapped[str | None] = mapped_column(String(120), index=True)
+    province: Mapped[str | None] = mapped_column(String(120))
+    latitude: Mapped[float] = mapped_column(Float)
+    longitude: Mapped[float] = mapped_column(Float)
+    population: Mapped[int | None] = mapped_column(Integer)
+    source: Mapped[str] = mapped_column(String(30), default="geonames")
+
+    def __str__(self) -> str:
+        lieu = self.nom
+        if self.region and self.region != self.nom:
+            lieu += f" ({self.region})"
+        return lieu
+
+
+class Realisation(Base):
+    """Inauguration / ouverture d'une infrastructure publique, telle que
+    RAPPORTÉE par une source (officielle : gouvernement.gov.bf, présidence ;
+    ou presse). Registre factuel et sourcé — chaque entrée renvoie à son
+    document. Extraction automatique validée avant publication comme le reste.
+
+    Le champ `statut` distingue une annonce d'un ouvrage livré, pour ne pas
+    présenter l'un pour l'autre :
+      annonce | premiere_pierre | inauguration | mise_en_service
+    `type` (documenté, chaîne libre) : route, pont, usine, hopital,
+    centre_sante, ecole, universite, barrage, adduction_eau, electrification,
+    energie, logement, marche, aeroport, batiment_public, autre.
+    """
+
+    __tablename__ = "realisation"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    document_id: Mapped[int | None] = mapped_column(ForeignKey("document.id"))  # source
+    type: Mapped[str] = mapped_column(String(40), index=True)
+    titre: Mapped[str] = mapped_column(String(500))
+    description: Mapped[str | None] = mapped_column(Text)
+    statut: Mapped[str] = mapped_column(String(30), default="inauguration")
+    date_evenement: Mapped[date | None] = mapped_column(Date, index=True)
+    # localisation
+    localite_id: Mapped[int | None] = mapped_column(ForeignKey("localite.id"))
+    localisation_nom: Mapped[str | None] = mapped_column(String(300))  # lieu brut extrait
+    region: Mapped[str | None] = mapped_column(String(120), index=True)
+    latitude: Mapped[float | None] = mapped_column(Float)
+    longitude: Mapped[float | None] = mapped_column(Float)
+    precision_geo: Mapped[str | None] = mapped_column(String(20))  # commune|region|site|pays
+    # contexte
+    secteur: Mapped[str | None] = mapped_column(String(60), index=True)
+    maitre_ouvrage: Mapped[str | None] = mapped_column(String(300))
+    montant_fcfa: Mapped[int | None] = mapped_column(BigInteger)
+    source_url: Mapped[str | None] = mapped_column(String(1000))
+    photo_url: Mapped[str | None] = mapped_column(String(1000))
+    score_confiance: Mapped[float | None] = mapped_column(Float)
+    statut_validation: Mapped[str] = mapped_column(String(20), default="a_valider", index=True)
+
+    document: Mapped[Document | None] = relationship()
+    localite: Mapped[Localite | None] = relationship()
+
+    def __str__(self) -> str:
+        return f"{self.type} — {self.titre[:60]}"

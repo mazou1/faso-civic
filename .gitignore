@@ -10,7 +10,8 @@ __pycache__/
 .env
 
 # Données collectées (archives PDF/HTML) — l'actif vit en prod + sauvegardes, pas dans git
-data/
+# Ancré sur le dossier d'archives ; le référentiel bundlé backend/app/data/ reste versionné.
+/backend/data/
 
 # Divers
 *.log

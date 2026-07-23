@@ -1,0 +1,2 @@
+Données géographiques : GeoNames (https://www.geonames.org), licence CC BY 4.0.
+Extrait pour le Burkina Faso (régions, provinces, localités + coordonnées).
