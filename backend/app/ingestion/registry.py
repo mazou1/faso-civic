@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.ingestion.base import Collector
+from app.ingestion.actualites_gouv import ActualitesGouvCollector
 from app.ingestion.assemblee import AssembleeCollector
 from app.ingestion.conseil_ministres import ConseilMinistresCollector
 from app.ingestion.dgcmef import DgcmefCollector
@@ -30,6 +31,7 @@ SEEDS: list[tuple[str, str, str, str, str]] = [
     ("lepays", "Le Pays", "https://lepays.bf", "media", "30min"),
     # Institutionnel — vérifié HTTP 200 le 2026-07-09, scrapers à venir (phases 1-2)
     ("conseil_ministres", "Conseil des ministres", "https://www.gouvernement.gov.bf", "institutionnel", "hebdo"),
+    ("actualites_gouv", "Actualités du gouvernement", "https://www.gouvernement.gov.bf", "institutionnel", "quotidien"),
     ("sig", "Service d'information du gouvernement", "https://www.sig.gov.bf", "institutionnel", "quotidien"),
     ("presidence", "Présidence du Faso", "https://www.presidencedufaso.bf", "institutionnel", "quotidien"),
     ("legiburkina", "Légiburkina (SGG-CM)", "https://www.legiburkina.gov.bf", "institutionnel", "quotidien"),
@@ -51,6 +53,7 @@ COLLECTORS: dict[str, type[Collector]] = {
     slug: make_rss_collector(slug, url) for slug, url in RSS_FEEDS.items()
 } | {
     ConseilMinistresCollector.slug: ConseilMinistresCollector,
+    ActualitesGouvCollector.slug: ActualitesGouvCollector,
     LegiburkinaCollector.slug: LegiburkinaCollector,
     AssembleeCollector.slug: AssembleeCollector,
     BudgetCitoyenCollector.slug: BudgetCitoyenCollector,

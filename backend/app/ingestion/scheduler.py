@@ -24,10 +24,28 @@ def run_medias() -> None:
 
 
 def run_institutionnel() -> None:
-    """Sources institutionnelles quotidiennes (Légiburkina…)."""
+    """Sources institutionnelles quotidiennes (Légiburkina, actualités gouv…)
+    puis extraction bornée des réalisations d'infrastructure sur les nouvelles
+    actualités (si une clé LLM est disponible)."""
     with SessionLocal() as db:
         for cls in active_collectors(db, groupe="institutionnel"):
             cls(db).run()
+    cle = (
+        settings.mistral_api_key
+        if settings.llm_provider == "mistral"
+        else settings.anthropic_api_key
+    )
+    if not cle:
+        return
+    from app.extraction.realisations import traiter_lot
+
+    with SessionLocal() as db:
+        # borné : le flot quotidien est faible ; le backfill se lance à la main
+        vus, total, _, echecs = traiter_lot(db, max_docs=60)
+    logger.info(
+        "Réalisations : %d actualité(s) examinée(s), %d extraite(s) (à valider), %d échec(s)",
+        vus, total, echecs,
+    )
 
 
 def run_conseil_ministres() -> None:
