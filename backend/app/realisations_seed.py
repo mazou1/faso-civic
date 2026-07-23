@@ -54,6 +54,7 @@ def seed(db) -> int:
                     precision_geo="commune",
                     secteur=SECTEUR_PAR_TYPE.get(row["type"], "Autres"),
                     maitre_ouvrage=MARQUEUR,
+                    montant_fcfa=int(row["montant_fcfa"]) if row.get("montant_fcfa") else None,
                     source_url=row.get("source_url") or None,
                     statut_validation="valide",
                 )
