@@ -17,10 +17,13 @@
       localisés à la commune (source&nbsp;: GeoNames).
     </p>
     <p>
-      <strong>Période couverte&nbsp;:</strong> le registre reflète la profondeur des
-      sources collectées (actualités officielles depuis 2022) ; son point de départ
-      ne signifie pas que les infrastructures antérieures n'existaient pas. La
-      couverture s'étend à mesure que d'autres sources (archives de presse) sont ajoutées.
+      <strong>Disponibilité des données selon la période&nbsp;:</strong> la couverture
+      n'est pas uniforme dans le temps. Le fil officiel collecté automatiquement
+      (gouvernement.gov.bf) ne remonte qu'à <strong>2022</strong> ; les entrées
+      antérieures proviennent d'un <strong>jeu de référence saisi à la main</strong>
+      (grandes infrastructures documentées : barrages, échangeurs, centrales…), non
+      exhaustif. Le point de départ d'une période <em>ne signifie donc pas</em> qu'aucune
+      infrastructure n'existait avant — seulement que la source ne la couvre pas encore.
     </p>
   </details>
 
@@ -55,15 +58,19 @@
   <!-- CARTE -->
   <div v-show="onglet === 'carte'">
     <div class="chrono" v-if="anneeMin != null && anneeMax > anneeMin">
-      <button class="btn-lire" @click="enLecture ? stopLecture() : lireChronologie()">
+      <button class="btn-lire" @click="enLecture ? stopLecture() : lireChronologie()"
+        :title="enLecture ? 'Pause' : 'Lire la chronologie'">
         {{ enLecture ? "⏸" : "▶" }}
       </button>
-      <input
-        type="range" :min="anneeMin" :max="anneeMax" step="1"
-        :value="anneeCurseur" @input="anneeCurseur = Number($event.target.value); scrub()"
-      />
-      <span class="chrono-an">{{ curseurActif ? "jusqu'en " + anneeCurseur : "toutes les années" }}</span>
-      <button v-if="curseurActif" class="btn-tout" @click="toutAfficher">tout afficher</button>
+      <div class="dual">
+        <div class="dual-track"><div class="dual-fill" :style="fillStyle"></div></div>
+        <input type="range" class="dual-in" :min="anneeMin" :max="anneeMax" step="1"
+          :value="anneeDebut" @input="majDebut" aria-label="Année de début" />
+        <input type="range" class="dual-in" :min="anneeMin" :max="anneeMax" step="1"
+          :value="anneeFin" @input="majFin" aria-label="Année de fin" />
+      </div>
+      <span class="chrono-an">{{ plein ? "toutes les années" : anneeDebut + " – " + anneeFin }}</span>
+      <button v-if="!plein" class="btn-tout" @click="toutAfficher">tout</button>
     </div>
     <div class="carte-wrap">
       <div ref="mapEl" class="carte-mlg"></div>
@@ -96,7 +103,7 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { apiGet } from "../api";
@@ -160,38 +167,52 @@ let map = null;
 let mapPrete = false;
 const nettoyeurs = [];
 
-// chronologie animée
-const anneeMin = ref(null), anneeMax = ref(null), anneeCurseur = ref(null);
-const curseurActif = ref(false), enLecture = ref(false);
+// chronologie : sélection d'une période [début, fin] + lecture animée
+const anneeMin = ref(null), anneeMax = ref(null);
+const anneeDebut = ref(null), anneeFin = ref(null);
+const enLecture = ref(false);
 let minuterie = null;
+
+const plein = computed(
+  () => anneeDebut.value <= anneeMin.value && anneeFin.value >= anneeMax.value
+);
+const fillStyle = computed(() => {
+  const etendue = anneeMax.value - anneeMin.value || 1;
+  const g = ((anneeDebut.value - anneeMin.value) / etendue) * 100;
+  const d = ((anneeMax.value - anneeFin.value) / etendue) * 100;
+  return { left: g + "%", right: d + "%" };
+});
 
 function stopLecture() {
   enLecture.value = false;
   if (minuterie) { clearInterval(minuterie); minuterie = null; }
 }
+function majDebut(e) {
+  stopLecture();
+  anneeDebut.value = Math.min(Number(e.target.value), anneeFin.value);
+  rafraichirCarte();
+}
+function majFin(e) {
+  stopLecture();
+  anneeFin.value = Math.max(Number(e.target.value), anneeDebut.value);
+  rafraichirCarte();
+}
 function lireChronologie() {
   if (anneeMin.value == null) return;
   stopLecture();
-  curseurActif.value = true;
-  if (anneeCurseur.value == null || anneeCurseur.value >= anneeMax.value)
-    anneeCurseur.value = anneeMin.value;
+  anneeFin.value = anneeDebut.value;   // révèle depuis le début de la période
   rafraichirCarte();
   enLecture.value = true;
   minuterie = setInterval(() => {
-    if (anneeCurseur.value >= anneeMax.value) { stopLecture(); return; }
-    anneeCurseur.value += 1;
+    if (anneeFin.value >= anneeMax.value) { stopLecture(); return; }
+    anneeFin.value += 1;
     rafraichirCarte();
   }, 1300);
 }
-function scrub() {
-  stopLecture();
-  curseurActif.value = true;
-  rafraichirCarte();
-}
 function toutAfficher() {
   stopLecture();
-  curseurActif.value = false;
-  anneeCurseur.value = anneeMax.value;
+  anneeDebut.value = anneeMin.value;
+  anneeFin.value = anneeMax.value;
   rafraichirCarte();
 }
 
@@ -352,11 +373,12 @@ function geojsonLignes(list) {
 
 let dernier = [];
 function pointsAffiches() {
-  if (!curseurActif.value || anneeCurseur.value == null) return dernier;
-  const y = anneeCurseur.value;
+  if (anneeDebut.value == null || plein.value) return dernier;
+  const a = anneeDebut.value, b = anneeFin.value;
   return dernier.filter((r) => {
     if (!r.date_evenement) return false;
-    return Number(r.date_evenement.slice(0, 4)) <= y;
+    const y = Number(r.date_evenement.slice(0, 4));
+    return y >= a && y <= b;
   });
 }
 function rafraichirCarte() {
@@ -388,7 +410,10 @@ async function recharger() {
     if (ans.length) {
       anneeMin.value = Math.min(...ans);
       anneeMax.value = Math.max(...ans);
-      if (!curseurActif.value) anneeCurseur.value = anneeMax.value;
+      if (anneeDebut.value == null || anneeDebut.value < anneeMin.value)
+        anneeDebut.value = anneeMin.value;
+      if (anneeFin.value == null || anneeFin.value > anneeMax.value)
+        anneeFin.value = anneeMax.value;
     }
     rafraichirCarte();
     dessinerStats();
@@ -446,19 +471,39 @@ onBeforeUnmount(() => {
 .filtres { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
 .filtres select { padding: 7px 10px; }
 .onglets a { cursor: pointer; }
-.chrono { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-.chrono input[type="range"] { flex: 1; max-width: 420px; accent-color: var(--accent); }
+.chrono { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
 .btn-lire {
   width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer;
   background: var(--accent); color: #fff; font-size: 0.9rem; flex: none;
 }
-.chrono-an { color: var(--text-secondary); font-size: 0.88rem; min-width: 120px; }
+/* double curseur : deux poignées pour sélectionner une période */
+.dual { position: relative; flex: 1; min-width: 180px; max-width: 440px; height: 34px; }
+.dual-track {
+  position: absolute; top: 50%; left: 0; right: 0; transform: translateY(-50%);
+  height: 4px; background: var(--border); border-radius: 2px;
+}
+.dual-fill { position: absolute; top: 0; bottom: 0; background: var(--accent); border-radius: 2px; }
+.dual-in {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0;
+  background: none; pointer-events: none; -webkit-appearance: none; appearance: none;
+}
+.dual-in::-webkit-slider-thumb {
+  pointer-events: auto; -webkit-appearance: none; appearance: none;
+  width: 18px; height: 18px; border-radius: 50%; background: var(--accent);
+  border: 2px solid var(--surface-1); box-shadow: 0 0 0 1px var(--border); cursor: pointer;
+}
+.dual-in::-moz-range-thumb {
+  pointer-events: auto; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--accent); border: 2px solid var(--surface-1); cursor: pointer;
+}
+.chrono-an { color: var(--text-secondary); font-size: 0.88rem; min-width: 110px; }
 .btn-tout {
   background: none; border: 1px solid var(--border); border-radius: 6px;
   padding: 3px 8px; font-size: 0.8rem; color: var(--text-secondary); cursor: pointer;
 }
 .carte-wrap { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-.carte-mlg { height: 540px; width: 100%; }
+.carte-mlg { height: min(72vh, 720px); width: 100%; }
+@media (max-width: 768px) { .carte-mlg { height: 68vh; } }
 .legende { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0; font-size: 0.82rem; color: var(--text-secondary); }
 .lg-item { display: inline-flex; align-items: center; gap: 5px; }
 .lg-emo { font-size: 1rem; line-height: 1; }

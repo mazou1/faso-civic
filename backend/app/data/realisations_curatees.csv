@@ -1,0 +1,6 @@
+type,titre,description,statut,date,lieu,source_url
+barrage,Barrage de Samendéni,Barrage multifonctions sur le Mouhoun — 3e plus grand barrage du pays,mise_en_service,2019-11-30,Bama,https://fr.wikipedia.org/wiki/Barrage_de_Samendéni
+energie,Centrale solaire de Zagtouli,"Plus grande centrale solaire d'Afrique de l'Ouest à sa mise en service (33 MWc), à Zagtouli",inauguration,2017-11-29,Ouagadougou,https://lefaso.net/spip.php?article80707
+barrage,Barrage de Ziga,Barrage d'approvisionnement en eau potable de Ouagadougou sur le Nakambé,mise_en_service,2000-01-01,Ziniaré,https://fr.wikipedia.org/wiki/Barrage_de_Ziga
+barrage,Barrage de Bagré,Barrage hydroélectrique et hydro-agricole sur le Nakambé,mise_en_service,1992-01-01,Bagré,https://fr.wikipedia.org/wiki/Barrage_de_Bagré
+barrage,Barrage de Kompienga,Barrage hydroélectrique à l'est du pays,mise_en_service,1989-01-01,Kompienga,https://fr.wikipedia.org/wiki/Barrage_de_Kompienga
