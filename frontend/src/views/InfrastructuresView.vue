@@ -16,6 +16,12 @@
       vérification indépendante de son achèvement ou de son fonctionnement. Les points sont
       localisés à la commune (source&nbsp;: GeoNames).
     </p>
+    <p>
+      <strong>Période couverte&nbsp;:</strong> le registre reflète la profondeur des
+      sources collectées (actualités officielles depuis 2022) ; son point de départ
+      ne signifie pas que les infrastructures antérieures n'existaient pas. La
+      couverture s'étend à mesure que d'autres sources (archives de presse) sont ajoutées.
+    </p>
   </details>
 
   <div class="filtres">
@@ -63,8 +69,8 @@
       <div ref="mapEl" class="carte-mlg"></div>
     </div>
     <div class="legende">
-      <span v-for="[sec, col] in Object.entries(COULEURS)" :key="sec" class="lg-item">
-        <span class="pastille" :style="{ background: col }"></span>{{ sec }}
+      <span v-for="[t, emo] in Object.entries(TYPE_EMOJI)" :key="t" class="lg-item">
+        <span class="lg-emo">{{ emo }}</span>{{ TYPES_LBL[t] }}
       </span>
     </div>
     <p class="compteur">{{ total.toLocaleString("fr-FR") }} infrastructure{{ total > 1 ? "s" : "" }} localisée{{ total > 1 ? "s" : "" }}</p>
@@ -121,6 +127,21 @@ const TYPES_LBL = {
   barrage: "Barrage", adduction_eau: "Adduction d'eau", electrification: "Électrification",
   energie: "Énergie", logement: "Logement", marche_infrastructure: "Marché",
   aeroport: "Aéroport", batiment_public: "Bâtiment public", autre: "Autre",
+};
+// pictogramme par type d'ouvrage
+const TYPE_EMOJI = {
+  route: "🛣️", pont: "🌉", usine: "🏭", hopital: "🏥", centre_sante: "⚕️",
+  ecole: "🏫", universite: "🎓", barrage: "🌊", adduction_eau: "💧",
+  electrification: "⚡", energie: "⚡", logement: "🏘️", marche_infrastructure: "🏪",
+  aeroport: "✈️", batiment_public: "🏛️", autre: "📍",
+};
+const TYPE_SECTEUR = {
+  route: "Transport & mobilité", pont: "Transport & mobilité", aeroport: "Transport & mobilité",
+  usine: "Industrie", hopital: "Santé", centre_sante: "Santé",
+  ecole: "Éducation & formation", universite: "Éducation & formation",
+  barrage: "Eau & assainissement", adduction_eau: "Eau & assainissement",
+  electrification: "Énergie", energie: "Énergie", logement: "Habitat & urbanisme",
+  batiment_public: "Bâtiments publics", marche_infrastructure: "Commerce", autre: "Autres",
 };
 const libelleType = (t) => TYPES_LBL[t] || t;
 const libelleStatut = (s) => (STATUTS.find((x) => x.v === s) || {}).l || s;
@@ -187,6 +208,7 @@ function propsDe(r) {
     titre: r.titre,
     type: libelleType(r.type),
     statut: libelleStatut(r.statut),
+    typeCle: r.type,
     lieu: r.localisation_nom || r.region || "",
     arr: r.localisation_nom_arr || "",
     date: r.date_evenement || "",
@@ -270,17 +292,36 @@ function initCarte() {
       source: "liaisons",
       paint: { "line-color": "#000", "line-opacity": 0, "line-width": 14 },
     });
+    // une image par type (pictogramme sur pastille colorée par secteur)
+    const dpr = 2, S = 30;
+    for (const [type, emoji] of Object.entries(TYPE_EMOJI)) {
+      const cv = document.createElement("canvas");
+      cv.width = cv.height = S * dpr;
+      const ctx = cv.getContext("2d");
+      ctx.scale(dpr, dpr);
+      ctx.beginPath();
+      ctx.arc(S / 2, S / 2, 12, 0, 2 * Math.PI);
+      ctx.fillStyle = "#fff";
+      ctx.fill();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = COULEURS[TYPE_SECTEUR[type]] || "#888";
+      ctx.stroke();
+      ctx.font = '15px "Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",system-ui';
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(emoji, S / 2, S / 2 + 1);
+      const img = ctx.getImageData(0, 0, S * dpr, S * dpr);
+      if (!map.hasImage("ic-" + type)) map.addImage("ic-" + type, img, { pixelRatio: dpr });
+    }
     map.addSource("infra", { type: "geojson", data: geojson([]) });
     map.addLayer({
       id: "infra-pts",
-      type: "circle",
+      type: "symbol",
       source: "infra",
-      paint: {
-        "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 4, 10, 8],
-        "circle-color": couleurExpr(),
-        "circle-stroke-width": 1,
-        "circle-stroke-color": "#fff",
-        "circle-opacity": 0.9,
+      layout: {
+        "icon-image": ["concat", "ic-", ["get", "typeCle"]],
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 5, 0.7, 10, 1.05],
+        "icon-allow-overlap": true,
       },
     });
     for (const couche of ["infra-pts", "infra-lignes-hit"]) {
@@ -420,7 +461,7 @@ onBeforeUnmount(() => {
 .carte-mlg { height: 540px; width: 100%; }
 .legende { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0; font-size: 0.82rem; color: var(--text-secondary); }
 .lg-item { display: inline-flex; align-items: center; gap: 5px; }
-.pastille { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+.lg-emo { font-size: 1rem; line-height: 1; }
 .compteur { color: var(--text-muted); font-size: 0.9rem; }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
 .kpi { padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-1); }
