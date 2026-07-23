@@ -1,0 +1,45 @@
+{% extends "sqladmin/layout.html" %}
+
+{# le bloc content est déjà dans un <div class="row row-deck row-cards"> :
+   on émet donc directement des colonnes, sans row englobant #}
+{% block content %}
+{% if total == 0 %}
+<div class="col-12">
+  <div class="alert alert-success" role="alert">
+    <h4 class="alert-title">Rien à valider 🎉</h4>
+    <div class="text-secondary">Toutes les extractions ont été traitées.</div>
+  </div>
+</div>
+{% else %}
+<div class="col-12">
+  <p class="text-secondary">
+    <strong>{{ total }}</strong> élément(s) extrait(s) attendent votre validation.
+    Cliquez une file pour l'ouvrir : elle n'affiche que les éléments « à valider »,
+    avec des cases à cocher et les boutons <strong>✓ Valider la sélection</strong> /
+    <strong>✗ Rejeter la sélection</strong>.
+  </p>
+</div>
+{% endif %}
+
+{% for l in lignes %}
+<div class="col-sm-6 col-lg-4">
+  <a href="{{ l.url }}" class="card card-link {% if l.compte == 0 %}opacity-75{% endif %}">
+    <div class="card-body d-flex align-items-center justify-content-between">
+      <div>
+        <div class="h3 m-0">{{ l.libelle }}</div>
+        <div class="text-secondary">{% if l.compte %}à valider{% else %}à jour{% endif %}</div>
+      </div>
+      <span class="badge {% if l.compte %}bg-red{% else %}bg-green{% endif %} h2 m-0">{{ l.compte }}</span>
+    </div>
+  </a>
+</div>
+{% endfor %}
+
+<div class="col-12">
+  <p class="text-secondary mt-2 mb-0"><small>
+    Astuce : dans une file, ajoutez <code>?statut=valide</code>,
+    <code>?statut=rejete</code> ou <code>?statut=tous</code> à l'URL pour revoir
+    les éléments déjà traités.
+  </small></p>
+</div>
+{% endblock %}

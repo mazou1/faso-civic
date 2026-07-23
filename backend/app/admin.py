@@ -6,9 +6,9 @@ Remplace le rôle de Directus dans vie-publique.sn, sans service supplémentaire
 import secrets
 
 from fastapi import FastAPI
-from sqladmin import Admin, ModelView, action
+from sqladmin import Admin, BaseView, ModelView, action, expose
 from sqladmin.authentication import AuthenticationBackend
-from sqlalchemy import update
+from sqlalchemy import func, select, update
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
 
@@ -42,9 +42,29 @@ def _retour(request: Request, defaut: str) -> RedirectResponse:
 
 
 class ValidationActionsMixin:
-    """Actions de validation en masse sur les entités extraites (cases à cocher)."""
+    """File de validation : la liste n'affiche QUE les éléments « à valider »
+    par défaut (le back-office devient une file de tâches claire), avec cases à
+    cocher pour valider/rejeter en masse. `?statut=valide|rejete|tous` pour voir
+    les autres."""
 
     modele: type  # Decision ou Nomination
+    # les vues de SAISIE manuelle (dotations, gouvernement) ne filtrent pas :
+    # on y crée des lignes directement valides
+    defaut_a_valider: bool = True
+
+    def _filtre_statut(self, request: Request, stmt):
+        if not self.defaut_a_valider:
+            return stmt
+        statut = request.query_params.get("statut", "a_valider")
+        if statut and statut != "tous":
+            stmt = stmt.where(self.model.statut_validation == statut)
+        return stmt
+
+    def list_query(self, request: Request):
+        return self._filtre_statut(request, super().list_query(request))
+
+    def count_query(self, request: Request):
+        return self._filtre_statut(request, super().count_query(request))
 
     @action(
         name="valider",
@@ -245,6 +265,7 @@ class MarcheAdmin(ValidationActionsMixin, ModelView, model=Marche):
 
 class DotationAdmin(ValidationActionsMixin, ModelView, model=DotationBudgetaire):
     modele = DotationBudgetaire
+    defaut_a_valider = False  # saisie manuelle : on voit toutes les lignes
     name_plural = "Dotations budgétaires (saisie)"
     column_list = [
         DotationBudgetaire.exercice,
@@ -268,6 +289,7 @@ class DotationAdmin(ValidationActionsMixin, ModelView, model=DotationBudgetaire)
 
 class RepartitionAdmin(ValidationActionsMixin, ModelView, model=RepartitionBudgetaire):
     modele = RepartitionBudgetaire
+    defaut_a_valider = False  # saisie manuelle
     name_plural = "Répartitions budgétaires (saisie)"
     column_list = [
         RepartitionBudgetaire.exercice,
@@ -293,6 +315,7 @@ class RepartitionAdmin(ValidationActionsMixin, ModelView, model=RepartitionBudge
 
 class MembreGouvernementAdmin(ValidationActionsMixin, ModelView, model=MembreGouvernement):
     modele = MembreGouvernement
+    defaut_a_valider = False  # composition gérée à la main : tout afficher
     name_plural = "Gouvernement (composition)"
     column_list = [
         MembreGouvernement.ordre,
@@ -340,6 +363,49 @@ class RunAdmin(ModelView, model=Run):
     icon = "fa-solid fa-clock-rotate-left"
 
 
+# file de validation → (modèle, libellé, identity de la vue liste)
+_FILES_VALIDATION = [
+    (Nomination, "Nominations", "nomination"),
+    (Decision, "Décisions", "decision"),
+    (EngagementFinancier, "Engagements financiers", "engagement-financier"),
+    (Marche, "Marchés publics", "marche"),
+    (BudgetExercice, "Budgets d'exercice", "budget-exercice"),
+]
+
+
+class AValiderView(BaseView):
+    """Tableau de bord : ce qui attend une validation, par type, avec le
+    nombre en attente et un accès direct à chaque file."""
+
+    name = "① À valider"
+    icon = "fa-solid fa-clipboard-check"
+
+    @expose("/a-valider", methods=["GET"])
+    async def page(self, request: Request):
+        lignes = []
+        total = 0
+        with SessionLocal() as db:
+            for modele, libelle, identity in _FILES_VALIDATION:
+                n = db.scalar(
+                    select(func.count())
+                    .select_from(modele)
+                    .where(modele.statut_validation == "a_valider")
+                )
+                total += n
+                lignes.append(
+                    {
+                        "libelle": libelle,
+                        "compte": n,
+                        "url": request.url_for("admin:list", identity=identity),
+                    }
+                )
+        return await self.templates.TemplateResponse(
+            request,
+            "a_valider.html",
+            {"lignes": lignes, "total": total, "title": "À valider"},
+        )
+
+
 def mount_admin(app: FastAPI) -> None:
     admin = Admin(
         app,
@@ -347,6 +413,7 @@ def mount_admin(app: FastAPI) -> None:
         title="Faso Civic — Admin",
         authentication_backend=AdminAuth(secret_key=settings.secret_key),
     )
+    admin.add_view(AValiderView)
     for view in (
         SourceAdmin,
         DocumentAdmin,
