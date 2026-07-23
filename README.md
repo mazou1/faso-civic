@@ -32,7 +32,7 @@ Inspirée de [vie-publique.sn](https://www.vie-publique.sn) (Code for Senegal).
 |---|---|
 | **Conseil des ministres** | 145 comptes rendus structurés (2022→) : résumé des décisions, texte intégral, PDF officiel |
 | **Décisions** | 1 299 décisions validées, filtrables par ministère et nature |
-| **Annuaire de l'État** | 8 107 mandats reconstitués, 8 157 nominations, fiches personnalités **désambiguïsées par matricule** (6 188 personnes) |
+| **Annuaire de l'État** | 545 institutions (ministères, présidence, justice, régions, police, diplomatie, établissements) ; 8 107 mandats reconstitués, fiches personnalités **désambiguïsées par matricule** (6 188 personnes) ; **titulaires en fonction distingués des anciens** par détection des successions |
 | **Gouvernement** | Composition officielle avec portraits (Présidence du Faso), suivie à chaque remaniement |
 | **Assemblée** | 71 députés synchronisés depuis an.bf, président de l'ALT, lois votées |
 | **Lois & décrets** | 4 900 textes juridiques (Légiburkina) avec PDF archivés ; ~1 500 déjà en texte intégral (OCR en cours sur le reste) |
@@ -72,7 +72,9 @@ backend/
     ingestion/      # collecteurs + registre + scheduler (worker)
     extraction/     # LLM (Mistral/Claude), PDF → texte, OCR Tesseract
     admin.py        # back-office SQLAdmin (validation)
-    annuaire.py     # consolidation nominations → mandats
+    annuaire.py     # consolidation nominations → mandats (+ fins de poste par succession)
+    annuaire_succession.py  # identité d'un siège : titulaire unique vs collégial
+    annuaire_taxonomie.py   # type d'institution, portefeuilles, régions (réforme 2025)
     desambiguisation.py  # homonymes : matricules extraits des CR
     fusion.py       # dédoublonnage des structures
   alembic/          # migrations
@@ -149,6 +151,17 @@ tier gratuit) avec bascule possible vers l'API Claude.
 - Les homonymes de l'annuaire sont distingués par le **matricule de la fonction
   publique** cité dans les comptes rendus (couvre ~91 % des nominations) ; les
   fiches concernées affichent une note de méthode.
+- L'annuaire est **organisé par institution** ; le type (ministère, région,
+  juridiction, établissement…) et le nom courant sont déduits des données :
+  les ministères regroupent leurs intitulés successifs sous le libellé du
+  gouvernement en vigueur, et les régions portent leur nom officiel actuel avec
+  l'ancien en rappel (« Région Liptako (ex-Sahel) », réforme du 2 juillet 2025).
+- Un titulaire est marqué **« Ancien »** quand un successeur a été nommé au même
+  siège à titulaire unique (directeur général, secrétaire général, préfet…) ;
+  les postes collégiaux (administrateurs, conseillers…) restent multiples. Les
+  comptes rendus annonçant rarement une fin explicite, cette détection par
+  succession est prudente : au pire un mandat clos reste affiché « en cours »,
+  jamais l'inverse.
 - Légiburkina publie ~96 % de scans : la recherche couvre référence et
   description pour tout le corpus, le texte intégral progresse avec l'OCR.
 - Les traductions des CR en langues nationales (mooré, fulfuldé, dioula,
