@@ -1868,3 +1868,169 @@ def marches_stats(
         par_annee=par_annee,
         top_entreprises=top_entreprises,
     )
+
+
+# --- Infrastructures & inaugurations -----------------------------------------
+
+class RealisationOut(BaseModel):
+    id: int
+    type: str
+    titre: str
+    description: str | None
+    statut: str
+    date_evenement: date | None
+    region: str | None
+    localisation_nom: str | None
+    latitude: float | None
+    longitude: float | None
+    secteur: str | None
+    maitre_ouvrage: str | None
+    montant_fcfa: int | None
+    source_url: str | None
+
+
+class RealisationsPage(BaseModel):
+    total: int
+    realisations: list[RealisationOut]
+
+
+def _realisations_filtrees(type_: str | None, region: str | None, statut: str | None,
+                           secteur: str | None, annee: int | None, q: str | None):
+    from app.models import Realisation
+
+    stmt = select(Realisation).where(Realisation.statut_validation == "valide")
+    if type_:
+        stmt = stmt.where(Realisation.type == type_)
+    if region:
+        stmt = stmt.where(Realisation.region == region)
+    if statut:
+        stmt = stmt.where(Realisation.statut == statut)
+    if secteur:
+        stmt = stmt.where(Realisation.secteur == secteur)
+    if annee:
+        stmt = stmt.where(func.extract("year", Realisation.date_evenement) == annee)
+    if q:
+        motif = f"%{q}%"
+        stmt = stmt.where(
+            Realisation.titre.ilike(motif) | Realisation.localisation_nom.ilike(motif)
+        )
+    return stmt
+
+
+@router.get("/realisations", response_model=RealisationsPage)
+def list_realisations(
+    db: Session = Depends(get_db),
+    type: str | None = Query(None),
+    region: str | None = Query(None),
+    statut: str | None = Query(None),
+    secteur: str | None = Query(None),
+    annee: int | None = Query(None),
+    q: str | None = Query(None),
+    limite: int = Query(3000, ge=1, le=5000),
+):
+    """Registre des inaugurations/infrastructures (validées) : liste + points
+    pour la carte. Filtres type/région/statut/secteur/année/recherche."""
+    from app.models import Realisation
+
+    stmt = _realisations_filtrees(type, region, statut, secteur, annee, q)
+    total = db.scalar(
+        select(func.count()).select_from(stmt.order_by(None).subquery())
+    )
+    rows = db.scalars(
+        stmt.order_by(Realisation.date_evenement.desc().nulls_last(), Realisation.id.desc())
+        .limit(limite)
+    ).all()
+    return RealisationsPage(
+        total=int(total or 0),
+        realisations=[
+            RealisationOut(
+                id=r.id, type=r.type, titre=r.titre, description=r.description,
+                statut=r.statut, date_evenement=r.date_evenement, region=r.region,
+                localisation_nom=r.localisation_nom, latitude=r.latitude,
+                longitude=r.longitude, secteur=r.secteur, maitre_ouvrage=r.maitre_ouvrage,
+                montant_fcfa=r.montant_fcfa, source_url=r.source_url,
+            )
+            for r in rows
+        ],
+    )
+
+
+class RealisationsStats(BaseModel):
+    total: int
+    montant_total: int
+    par_type: list[dict]
+    par_region: list[dict]
+    par_annee: list[dict]
+    par_statut: list[dict]
+    types_dispo: list[str]
+    regions_dispo: list[str]
+    annees_dispo: list[int]
+
+
+@router.get("/realisations/stats", response_model=RealisationsStats)
+def realisations_stats(
+    db: Session = Depends(get_db),
+    type: str | None = Query(None),
+    region: str | None = Query(None),
+    statut: str | None = Query(None),
+    secteur: str | None = Query(None),
+    annee: int | None = Query(None),
+):
+    """Agrégats du registre (validé) : par type, région, année, statut."""
+    from app.models import Realisation
+
+    an = func.extract("year", Realisation.date_evenement)
+    montant = func.coalesce(func.sum(Realisation.montant_fcfa), 0)
+
+    def filtree(*cols):
+        s = select(*cols).where(Realisation.statut_validation == "valide")
+        if type:
+            s = s.where(Realisation.type == type)
+        if region:
+            s = s.where(Realisation.region == region)
+        if statut:
+            s = s.where(Realisation.statut == statut)
+        if secteur:
+            s = s.where(Realisation.secteur == secteur)
+        if annee:
+            s = s.where(an == annee)
+        return s
+
+    total = int(db.scalar(filtree(func.count()).order_by(None)) or 0)
+    montant_total = int(db.scalar(filtree(montant).order_by(None)) or 0)
+
+    def agrege(colonne):
+        rows = db.execute(
+            filtree(colonne.label("cle"), func.count().label("n"))
+            .where(colonne.is_not(None)).group_by(colonne).order_by(func.count().desc())
+        ).all()
+        return [{"cle": str(r.cle), "n": int(r.n)} for r in rows]
+
+    par_annee = [
+        {"cle": str(int(r.cle)), "n": int(r.n)}
+        for r in db.execute(
+            filtree(an.label("cle"), func.count().label("n"))
+            .where(an.is_not(None)).group_by(an).order_by(an)
+        ).all()
+    ]
+
+    base_all = select(Realisation).where(Realisation.statut_validation == "valide")
+    types_dispo = sorted(
+        x for x in db.scalars(base_all.with_only_columns(Realisation.type).distinct().order_by(None)) if x
+    )
+    regions_dispo = sorted(
+        x for x in db.scalars(base_all.with_only_columns(Realisation.region).distinct().order_by(None)) if x
+    )
+    annees_dispo = sorted(
+        {int(a) for a in db.scalars(base_all.with_only_columns(an.distinct()).order_by(None)) if a is not None},
+        reverse=True,
+    )
+
+    return RealisationsStats(
+        total=total, montant_total=montant_total,
+        par_type=agrege(Realisation.type),
+        par_region=agrege(Realisation.region),
+        par_annee=par_annee,
+        par_statut=agrege(Realisation.statut),
+        types_dispo=types_dispo, regions_dispo=regions_dispo, annees_dispo=annees_dispo,
+    )
