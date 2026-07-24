@@ -48,7 +48,7 @@ const LIENS = [
 <template>
   <header v-if="!immersif" class="entete">
     <div class="entete-inner">
-      <router-link to="/" class="marque">Faso<span>Civic</span></router-link>
+      <router-link to="/" class="marque">Faso <span>Repères</span></router-link>
       <nav class="nav">
         <router-link v-for="[chemin, libelle] in LIENS" :key="chemin" :to="chemin">{{ libelle }}</router-link>
       </nav>

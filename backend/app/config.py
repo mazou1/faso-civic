@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-long-random"
 
     # Identification claire auprès des sites collectés (politesse)
-    user_agent: str = "FasoCivic/0.1 (plateforme civique open source)"
+    user_agent: str = "FasoReperes/0.1 (plateforme civique open source)"
 
     # Extraction LLM : mistral (tier gratuit) | anthropic — cf. extraction/conseil_ministres.py
     llm_provider: str = "mistral"

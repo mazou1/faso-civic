@@ -1,7 +1,7 @@
 <template>
   <!-- immersion totale : l'en-tête, le pied de page et la barre mobile sont
        masqués par App.vue sur cette route ; le retour passe par le bouton
-       « ← FasoCivic » du dossier (target _top) -->
+       « ← Faso Repères » du dossier (target _top) -->
   <iframe
     class="cadre-dossier"
     src="/plan-relance/"

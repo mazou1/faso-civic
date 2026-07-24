@@ -1627,7 +1627,7 @@ def rss_conseils(request: Request, db: Session = Depends(get_db)):
     ]
     xml = flux_rss(
         request,
-        titre="FasoCivic — Conseils des ministres",
+        titre="Faso Repères — Conseils des ministres",
         description="Les comptes rendus du Conseil des ministres du Burkina Faso.",
         chemin="/rss/conseils.xml",
         items=items,
@@ -1662,7 +1662,7 @@ def rss_actualites(request: Request, db: Session = Depends(get_db)):
         )
     xml = flux_rss(
         request,
-        titre="FasoCivic — Actualités",
+        titre="Faso Repères — Actualités",
         description="Le fil d'actualités agrégé : médias burkinabè et communiqués officiels.",
         chemin="/rss/actualites.xml",
         items=items,
@@ -1694,7 +1694,7 @@ def rss_textes(request: Request, db: Session = Depends(get_db)):
     ]
     xml = flux_rss(
         request,
-        titre="FasoCivic — Lois & décrets",
+        titre="Faso Repères — Lois & décrets",
         description="Les nouveaux textes juridiques publiés (Légiburkina).",
         chemin="/rss/textes.xml",
         items=items,

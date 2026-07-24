@@ -38,7 +38,7 @@
       <div class="titre">{{ d.titre || d.url }}</div>
       <div class="meta" style="margin-top: 6px">
         <router-link v-if="d.type_doc === 'cr_conseil'" class="source" :to="`/conseils/${d.id}`">
-          Voir sur FasoCivic →
+          Voir sur Faso Repères →
         </router-link>
         <a v-if="d.pdf" class="source" :href="`/api/documents/${d.id}/fichier`" target="_blank" rel="noopener">
           📄 PDF archivé →

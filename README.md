@@ -1,4 +1,4 @@
-# FasoCivic — l'information publique du Burkina Faso
+# Faso Repères — l'information publique du Burkina Faso
 
 [![Licence: GPL-3.0](https://img.shields.io/badge/licence-GPL--3.0-009e49)](LICENSE)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-15a35b)
@@ -12,7 +12,7 @@ l'Assemblée. Chaque donnée affichée est reliée à son document source offici
 
 Inspirée de [vie-publique.sn](https://www.vie-publique.sn) (Code for Senegal).
 
-![Tableau de bord FasoCivic](docs/captures/accueil.png)
+![Tableau de bord Faso Repères](docs/captures/accueil.png)
 
 ## Principes
 
@@ -283,7 +283,7 @@ curl 'http://localhost:8090/api/finances/stats'
 
 ## Contribuer
 
-FasoCivic est **libre et collaboratif** : il vit des contributions de chacun.
+Faso Repères est **libre et collaboratif** : il vit des contributions de chacun.
 On peut aider **sans écrire une ligne de code** :
 
 - 🔗 **Signaler une source cassée** — les sites officiels changent d'adresse ou

@@ -273,10 +273,10 @@ export default function App() {
 
   return (
     <div style={{ background: C.bg, color: "#fff", fontFamily: "'DM Sans',sans-serif", overflowX: "hidden" }}>
-      {/* retour vers FasoCivic — target _top : navigue la page parente quand
+      {/* retour vers Faso Repères — target _top : navigue la page parente quand
           le dossier est encapsulé (/dossiers/plan-relance, plein écran) */}
       <a href={window.self === window.top ? "/" : "/dossiers"} target="_top" style={{ position: "fixed", top: 14, left: 16, zIndex: 100, fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)", textDecoration: "none", background: "rgba(11,14,20,0.6)", padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(6px)" }}>
-        ← Faso<span style={{ color: C.gold }}>Civic</span>
+        ← Faso <span style={{ color: C.gold }}>Repères</span>
       </a>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;700&display=swap');

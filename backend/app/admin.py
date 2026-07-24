@@ -475,7 +475,7 @@ def mount_admin(app: FastAPI) -> None:
     admin = Admin(
         app,
         engine,
-        title="Faso Civic — Admin",
+        title="Faso Repères — Admin",
         authentication_backend=AdminAuth(secret_key=settings.secret_key),
     )
     admin.add_view(AValiderView)
