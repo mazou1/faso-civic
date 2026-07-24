@@ -22,3 +22,7 @@ node_modules/
 
 # Captures Playwright à la racine (docs/captures reste suivi)
 /*.png
+
+# Documents de travail internes (cadrage, veille) — ne pas publier
+/docs/cadrage-plateforme-civique-v2.md
+/docs/rapport-sources-donnees-temps-reel.md
