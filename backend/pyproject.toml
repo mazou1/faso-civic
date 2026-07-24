@@ -1,5 +1,5 @@
 [project]
-name = "faso-civic"
+name = "faso-reperes"
 version = "0.1.0"
 description = "Plateforme civique Burkina Faso — agrégation d'informations publiques officielles"
 requires-python = ">=3.12"
