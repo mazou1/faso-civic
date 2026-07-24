@@ -12,7 +12,14 @@ l'Assemblée. Chaque donnée affichée est reliée à son document source offici
 
 Inspirée de [vie-publique.sn](https://www.vie-publique.sn) (Code for Senegal).
 
-![Tableau de bord Faso Repères](docs/captures/accueil.png)
+<table>
+  <tr>
+    <td><img src="docs/captures/accueil.png" alt="Tableau de bord Faso Repères — thème clair"></td>
+    <td><img src="docs/captures/accueil-dark.png" alt="Tableau de bord Faso Repères — thème sombre"></td>
+  </tr>
+</table>
+
+<p align="center"><em>Interface en thème clair et sombre.</em></p>
 
 ## Principes
 
