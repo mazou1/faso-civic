@@ -33,7 +33,7 @@ résolu pour obtenir le certificat).
 ## 3. Déployer
 
 ```bash
-git clone git@github.com:mazou1/faso-civic.git /srv/faso
+git clone git@github.com:mazou1/faso-reperes.git /srv/faso
 cd /srv/faso
 cp deploy/.env.prod.example .env
 nano .env          # domaine + secrets (voir les commandes openssl dans le fichier)
