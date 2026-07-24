@@ -57,38 +57,121 @@ L'annuaire est organisé par institution (ministères, régions, juridictions,
 
 ## Architecture
 
+Le principe directeur : **une donnée ne devient publique qu'après validation
+humaine**. Tout ce qui est automatique (collecte, structuration LLM, géocodage)
+produit des entités `a_valider` ; seul un humain les fait passer à `valide`, et
+l'API ne sert jamais que le `valide`.
+
+### Vue d'ensemble du pipeline
+
+```mermaid
+flowchart TB
+    subgraph SRC["1 · Sources officielles"]
+        direction LR
+        S1["gouvernement.gov.bf<br/>Comptes rendus du CM"]
+        S2["legiburkina · dgcmef<br/>finances · assemblée · présidence"]
+        S3["Médias (RSS)<br/>lefaso · sidwaya · aib…"]
+    end
+
+    subgraph WORKER["2 · Worker (conteneur séparé) — APScheduler"]
+        COL["Collecteurs httpx<br/>registre + déclencheurs cron"]
+        ARCH[("data/ — archives brutes<br/>PDF · HTML (hors git)")]
+    end
+
+    subgraph EXTRACT["3 · Structuration"]
+        PDF["PDF → texte (pdfplumber)"]
+        OCR["OCR Tesseract (scans)"]
+        LLM["Extraction LLM<br/>Mistral small → Claude (repli)<br/>sortie = schéma Pydantic"]
+        RGX["Regex déterministe<br/>matricules · liaisons géo"]
+    end
+
+    GATE{{"4 · VALIDATION HUMAINE<br/>a_valider ➜ valide<br/>back-office SQLAdmin"}}
+
+    subgraph CONSO["5 · Consolidation (jobs idempotents)"]
+        direction LR
+        ANN["Annuaire<br/>nominations → mandats + successions"]
+        DES["Désambiguïsation<br/>homonymes par matricule"]
+        GEO["Géocodage PostGIS<br/>pg_trgm (fuzzy)"]
+        FUS["Fusion des doublons<br/>de structures"]
+    end
+
+    DB[("6 · PostgreSQL + PostGIS<br/>pg_trgm · tsvector (recherche)")]
+    API["7 · API FastAPI<br/>/api/… · RSS · OpenAPI"]
+    WEB["8 · SPA Vue 3 (nginx, proxy /api)<br/>ECharts · MapLibre<br/>+ sous-app React /plan-relance"]
+
+    SRC --> COL --> ARCH
+    ARCH --> PDF --> LLM
+    ARCH --> OCR --> LLM
+    PDF --> RGX
+    LLM --> GATE
+    RGX --> GATE
+    GATE -->|entités validées| CONSO
+    CONSO --> DB
+    DB --> API --> WEB
 ```
-   collecte (APScheduler)          structuration              publication
-┌──────────────────────┐   ┌───────────────────────────┐   ┌──────────────────┐
-│ collecteurs httpx     │   │ extraction LLM             │   │ API FastAPI      │
-│ RSS · WordPress ·     │──▶│ (décisions, nominations,   │──▶│ /api/…           │
-│ Légiburkina · an.bf … │   │ engagements) + OCR + regex │   │                  │
-│        │              │   │ (matricules)               │   │ SPA Vue 3        │
-│        ▼              │   │        │                   │   │ (ECharts, nginx) │
-│ archivage data/       │   │        ▼                   │   └──────────────────┘
-│ (PDF/HTML bruts)      │   │ VALIDATION HUMAINE         │
-└──────────────────────┘   │ (back-office SQLAdmin)     │
-                            └───────────────────────────┘
-```
+
+### Le flux, étape par étape
+
+1. **Collecte** — le *worker* (conteneur distinct de l'API) interroge les sources
+   à leur cadence (`interval` 30 min pour les médias, `cron` pour l'institutionnel).
+   Chaque collecteur est enregistré dans un *registre* et écrit d'abord l'original
+   (PDF/HTML) dans `data/` : la source brute est archivée avant tout traitement.
+2. **Structuration** — les PDF sont convertis en texte (pdfplumber), les scans
+   passent par l'OCR (Tesseract). Le texte est envoyé au LLM (Mistral `small` par
+   défaut, repli Claude), qui **retourne un objet conforme à un schéma Pydantic**
+   (décisions, nominations, engagements financiers, réalisations). Ce qui est
+   déterministe — matricules, paires de localités d'une route — passe par du
+   **regex**, pas par le LLM.
+3. **Validation humaine** — toute entité extraite naît `a_valider`. Le tableau de
+   bord « À valider » de `/admin` (SQLAdmin) la présente par type ; on valide à la
+   main, ou en masse au-dessus d'un seuil de confiance (`python -m app.validation 0.9`).
+4. **Consolidation** — des jobs *idempotents* recalculent l'annuaire (nominations →
+   mandats, fins de poste par succession), éclatent les homonymes par matricule,
+   géocodent les lieux (PostGIS + trigrammes) et proposent les doublons de structures.
+5. **Publication** — l'API FastAPI ne lit que le `valide`, expose `/api/…`, un flux
+   RSS et l'OpenAPI ; la SPA Vue 3 (servie par nginx qui proxifie `/api`) la
+   consomme, avec ECharts pour les graphes et MapLibre pour la carte des
+   infrastructures.
+
+### Organisation du dépôt
 
 ```
 backend/
   app/
-    api/            # routes publiques (conseils, annuaire, finances, recherche…)
-    ingestion/      # collecteurs + registre + scheduler (worker)
-    extraction/     # LLM (Mistral/Claude), PDF → texte, OCR Tesseract
-    admin.py        # back-office SQLAdmin (validation)
+    api/            # routes publiques (conseils, annuaire, finances, recherche…) + rss
+    ingestion/      # collecteurs httpx + registre + scheduler (le worker)
+    extraction/     # LLM (Mistral/Claude), PDF → texte, OCR Tesseract, réalisations
+    admin.py        # back-office SQLAdmin (validation + tableau « À valider »)
+    validation.py   # validation en masse par seuil de confiance
     annuaire.py     # consolidation nominations → mandats (+ fins de poste par succession)
     annuaire_succession.py  # identité d'un siège : titulaire unique vs collégial
     annuaire_taxonomie.py   # type d'institution, portefeuilles, régions (réforme 2025)
-    desambiguisation.py  # homonymes : matricules extraits des CR
+    desambiguisation.py     # homonymes : matricules extraits des CR
     fusion.py       # dédoublonnage des structures
-  alembic/          # migrations
+    geo.py          # géocodage (PostGIS, pg_trgm) ; geo_seed.py charge le gazetteer
+    models.py       # schéma SQLAlchemy ; alembic/ = migrations
 frontend/           # SPA Vue 3 + Vite, servie par nginx (proxy /api)
 apps/plan-relance/  # dossier interactif PND 2026-2030 (React, servi sous /plan-relance/)
+deploy/             # mise en production VPS (compose prod, Caddy, migration des données)
 docs/               # cadrage, rapports, captures d'écran
 data/               # archives brutes — hors git, à sauvegarder
 ```
+
+### Évolutions possibles des briques techniques
+
+Les choix actuels privilégient le **coût nul et la simplicité d'un VPS unique**.
+Chaque brique a une voie de montée en charge sans réécriture :
+
+| Brique | Choix actuel | Pourquoi | Évolution possible |
+|---|---|---|---|
+| Extraction LLM | Mistral `small` (tier gratuit) → repli Claude | coût nul, ~1 req/s suffit au volume | modèle plus grand pour les CR difficiles ; ou modèle local (Ollama) pour l'indépendance |
+| Ordonnancement | APScheduler `BlockingScheduler` dans un worker | un seul process, zéro infra | file de tâches (Celery/RQ + Redis) si la collecte se parallélise |
+| Base de données | PostgreSQL + PostGIS (pg_trgm, tsvector) | recherche plein-texte et géo sans service tiers | index dédié (OpenSearch/Meilisearch) si la recherche devient centrale |
+| Validation | back-office SQLAdmin | rapide à livrer, suffisant à un valideur | interface dédiée + rôles/traçabilité pour plusieurs relecteurs |
+| Frontend | SPA Vue 3 + Vite, `dist` servie par nginx | statique, cacheable, pas de SSR à opérer | SSR/SSG (Nuxt) pour le SEO et le partage social |
+| Cartographie | MapLibre GL + tuiles CARTO | pas de clé API, thème clair/sombre | fonds de carte auto-hébergés (tuiles vectorielles) pour l'autonomie |
+| Déploiement | Docker Compose, VPS unique derrière Caddy | un serveur, HTTPS automatique | conteneurs séparés / orchestrateur si le trafic l'exige ; réplique de lecture DB |
+| Archivage `data/` | volume disque du VPS | simple, sauvegardé par script | stockage objet (S3/Garage) pour la durabilité et le partage des sources brutes |
 
 ## Sources collectées
 
